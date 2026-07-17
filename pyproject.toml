@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "course-predator"
+version = "0.1.0"
+description = "A real-time multiplayer course-registration reaction game."
+requires-python = ">=3.11"
+dependencies = [
+    "pygame==2.6.1",
+]
+
+[project.scripts]
+course-predator-client = "course_predator.client:main"
+course-predator-server = "course_predator.server:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
