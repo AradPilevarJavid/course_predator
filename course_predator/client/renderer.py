@@ -271,7 +271,7 @@ class Renderer:
         self.screen.fill((10, 13, 21))
         self._center_panel("Connection lost", status)
 
-        
+
 def _default_player_state(player_id: int | None) -> PlayerState:
     return {
         "id": player_id or 0,
