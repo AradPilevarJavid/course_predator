@@ -68,14 +68,16 @@ class Renderer:
         status: str,
         dt: float,
     ) -> None:
+        y_offset = 0
+
         pygame.draw.rect(self.screen, (13, 18, 29), (0, 0, WINDOW_WIDTH, HUD_HEIGHT))
         title = self.font.render("Course Predator: Registration Race", True, (242, 246, 255))
-        self.screen.blit(title, (22, 13))
+        self.screen.blit(title, (22, 55 + y_offset))
         time_left = self.big.render(f"{state.get('time_left', 0):04.1f}s", True, (255, 222, 119))
-        self.screen.blit(time_left, time_left.get_rect(midtop=(WINDOW_WIDTH // 2, 10)))
+        self.screen.blit(time_left, time_left.get_rect(midtop=(WINDOW_WIDTH // 2, 10 + y_offset)))
         role_text = "Spectator" if role == "spectator" else f"Player {player_id}"
         status_surface = self.small.render(f"{role_text} • {status}", True, (163, 178, 198))
-        self.screen.blit(status_surface, (22, 48))
+        self.screen.blit(status_surface, (22, 90 + y_offset))
 
         for idx, player_key in enumerate(("1", "2")):
             player = players.get(player_key, _default_player_state(idx + 1))
@@ -84,17 +86,18 @@ class Renderer:
             score = score_text(float(player.get("score", 0.0)))
             name_color = (99, 201, 255) if player.get("id") == player_id else (229, 236, 245)
             label = self.font.render(f"{name}: {score}", True, name_color)
-            self.screen.blit(label, (left, 76))
-            self._draw_bar(left + 160, 78, 150, 16, player, "stamina", idx + 1, (78, 222, 137), dt)
-            self._draw_bar(left + 320, 78, 150, 16, player, "stress", idx + 1, (255, 99, 111), dt)
+            self.screen.blit(label, (left, 140 + y_offset))
+            self._draw_bar(left + 160, 150 + y_offset, 150, 16, player, "stamina", idx + 1, (78, 222, 137), dt)
+            self._draw_bar(left + 320, 150 + y_offset, 150, 16, player, "stress", idx + 1, (255, 99, 111), dt)
             effects = []
             if float(player.get("shield", 0)) > 0:
                 effects.append(f"Shield {player['shield']:.1f}")
             if float(player.get("frozen", 0)) > 0:
                 effects.append(f"Frozen {player['frozen']:.1f}")
             effect_text = self.small.render(" | ".join(effects), True, (183, 205, 255))
-            self.screen.blit(effect_text, (left + 160, 98))
+            self.screen.blit(effect_text, (left + 160, 170 + y_offset))
 
+    
     def _draw_bar(
         self,
         x: int,
