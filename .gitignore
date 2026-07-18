@@ -5,6 +5,9 @@ venv/
 replays/*.json
 *.zip
 
+# pdf
+*.pdf
+
 
 # jupyter
 *.ipynb
