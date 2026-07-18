@@ -232,13 +232,16 @@ class Renderer:
 
     def draw_calibration_overlay(self, progress: float) -> None:
         self._center_panel("Mouse calibration", "Move your mouse in a circle for smoother control.")
-        bar = pygame.Rect(280, 420, 400, 18)
+        bar_w = int(WINDOW_WIDTH * 0.36)   # ~400 on 1100
+        bar_h = 18
+        bar_x = (WINDOW_WIDTH - bar_w) // 2
+        bar_y = 420
+        bar = pygame.Rect(bar_x, bar_y, bar_w, bar_h)
         pygame.draw.rect(self.screen, (36, 44, 59), bar, border_radius=8)
-        pygame.draw.rect(self.screen, (99, 201, 255), (bar.x, bar.y, int(bar.width * progress), bar.height), border_radius=8)
-
-    def draw_connection_lost(self, status: str) -> None:
-        self.screen.fill((10, 13, 21))
-        self._center_panel("Connection lost", status)
+        pygame.draw.rect(self.screen, (99, 201, 255), (bar.x, bar.y, int(bar_w * progress), bar_h), border_radius=8)
+        def draw_connection_lost(self, status: str) -> None:
+            self.screen.fill((10, 13, 21))
+            self._center_panel("Connection lost", status)
 
     def _center_message(self, text: str, color: Color, offset_y: int) -> None:
         surface = self.big.render(text, True, color)
@@ -246,8 +249,8 @@ class Renderer:
 
     def _center_panel(self, headline: str, subtitle: str) -> None:
         # Panel dimensions proportional to window
-        panel_w = int(WINDOW_WIDTH * 0.59)       # ~650 on 1100
-        panel_h = int(WINDOW_HEIGHT * 0.22)      # ~180 on 820
+        panel_w = int(WINDOW_WIDTH * 0.59)
+        panel_h = int(WINDOW_HEIGHT * 0.22)
         panel_x = (WINDOW_WIDTH - panel_w) // 2
         panel_y = (WINDOW_HEIGHT - panel_h) // 2
         panel = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
@@ -263,7 +266,12 @@ class Renderer:
         subtitle_surface = self.small.render(subtitle, True, (205, 216, 232))
         self.screen.blit(headline_surface, headline_surface.get_rect(center=(panel.centerx, panel.y + int(panel_h * 0.37))))
         self.screen.blit(subtitle_surface, subtitle_surface.get_rect(center=(panel.centerx, panel.y + int(panel_h * 0.68))))
+    
+    def draw_connection_lost(self, status: str) -> None:
+        self.screen.fill((10, 13, 21))
+        self._center_panel("Connection lost", status)
 
+        
 def _default_player_state(player_id: int | None) -> PlayerState:
     return {
         "id": player_id or 0,
