@@ -4,3 +4,10 @@ __pycache__/
 venv/
 replays/*.json
 *.zip
+
+
+# jupyter
+*.ipynb
+.ipynb_checkpoints/
+
+
