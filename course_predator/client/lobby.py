@@ -32,19 +32,61 @@ class LobbyApp:
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("arial", 24, bold=True)
         self.small = pygame.font.SysFont("arial", 17)
-        self.title = pygame.font.SysFont("arial", 54, bold=True)
+        self.title_font = pygame.font.SysFont("arial", 54, bold=True)
+
+        # Build responsive layout based on window size
+        ww, wh = WINDOW_WIDTH, WINDOW_HEIGHT
+        margin = 80
+        input_y = 185
+        input_h = 44
+        gap = 25
+        # Compute input widths proportionally
+        available_width = ww - 2 * margin - 2 * gap
+        name_w = int(available_width * 0.35)
+        host_w = int(available_width * 0.35)
+        port_w = available_width - name_w - host_w
+
         self.inputs = {
-            "name": TextInput("Name", "Student", pygame.Rect(80, 185, 250, 44)),
-            "host": TextInput("IP / Host", self.config.host, pygame.Rect(365, 185, 250, 44)),
-            "port": TextInput("Port", str(self.config.port), pygame.Rect(650, 185, 180, 44)),
-            "duration": TextInput("Host Duration", str(self.config.duration), pygame.Rect(80, 280, 180, 44)),
+            "name": TextInput("Name", "Student", pygame.Rect(margin, input_y, name_w, input_h)),
+            "host": TextInput(
+                "IP / Host", self.config.host,
+                pygame.Rect(margin + name_w + gap, input_y, host_w, input_h)
+            ),
+            "port": TextInput(
+                "Port", str(self.config.port),
+                pygame.Rect(margin + name_w + host_w + 2 * gap, input_y, port_w, input_h)
+            ),
+            "duration": TextInput(
+                "Host Duration", str(self.config.duration),
+                pygame.Rect(margin, input_y + 95, 180, input_h)
+            ),
         }
+
+        # Buttons centred row
+        btn_y = 280
+        btn_h = 50
+        btn_gap = 20
+        btn_host_w = 160
+        btn_join_w = 160
+        btn_spec_w = 150
+        btn_row_width = btn_host_w + btn_join_w + btn_spec_w + 2 * btn_gap
+        btn_row_x = (ww - btn_row_width) // 2
+
         self.buttons = {
-            "host": Button("Host Game", pygame.Rect(305, 280, 160, 50), (51, 137, 255)),
-            "join": Button("Join Game", pygame.Rect(500, 280, 160, 50), (70, 193, 126)),
-            "spectate": Button("Spectate", pygame.Rect(695, 280, 150, 50), (151, 104, 255)),
-            "replay": Button("Watch Replay", pygame.Rect(370, 375, 220, 50), (255, 156, 84)),
+            "host": Button("Host Game", pygame.Rect(btn_row_x, btn_y, btn_host_w, btn_h), (51, 137, 255)),
+            "join": Button(
+                "Join Game",
+                pygame.Rect(btn_row_x + btn_host_w + btn_gap, btn_y, btn_join_w, btn_h),
+                (70, 193, 126),
+            ),
+            "spectate": Button(
+                "Spectate",
+                pygame.Rect(btn_row_x + btn_host_w + btn_join_w + 2 * btn_gap, btn_y, btn_spec_w, btn_h),
+                (151, 104, 255),
+            ),
+            "replay": Button("Watch Replay", pygame.Rect((ww - 220) // 2, 375, 220, 50), (255, 156, 84)),
         }
+
         self.error = ""
         self.server_process: subprocess.Popen[Any] | None = None
 
@@ -72,14 +114,23 @@ class LobbyApp:
 
     def _draw(self, dt: float, mouse_pos: tuple[int, int]) -> None:
         self.screen.fill((9, 12, 20))
-        title = self.title.render("Course Predator", True, (245, 248, 255))
-        subtitle = self.small.render("A real-time 1v1 course-registration reaction race", True, (161, 177, 201))
+        # Title & subtitle remain centered
+        title = self.title_font.render("Course Predator", True, (245, 248, 255))
         self.screen.blit(title, title.get_rect(center=(WINDOW_WIDTH // 2, 78)))
+        subtitle = self.small.render(
+            "A real-time 1v1 course-registration reaction race", True, (161, 177, 201)
+        )
         self.screen.blit(subtitle, subtitle.get_rect(center=(WINDOW_WIDTH // 2, 130)))
+
+        # Draw all inputs and buttons (positions already relative)
         for text_input in self.inputs.values():
             text_input.draw(self.screen, self.font, self.small)
         for button in self.buttons.values():
             button.draw(self.screen, self.font, mouse_pos, dt)
+
+        # Instructions: keep them at a left margin that scales with width
+        instr_x = int(WINDOW_WIDTH * 0.07)  # roughly 80 on 1100
+        instr_y = 485
         instructions = [
             "Host starts a local TCP server and joins as Player 1.",
             "Join connects as Player 1/2. Extra clients become spectators.",
@@ -87,10 +138,12 @@ class LobbyApp:
         ]
         for index, line in enumerate(instructions):
             surface = self.small.render(line, True, (180, 193, 212))
-            self.screen.blit(surface, (80, 485 + index * 26))
+            self.screen.blit(surface, (instr_x, instr_y + index * 26))
+
+        # Error message aligned with instructions
         if self.error:
             error = self.small.render(self.error, True, (255, 117, 128))
-            self.screen.blit(error, (80, 445))
+            self.screen.blit(error, (instr_x, instr_y - 40))
 
     def _host_game(self) -> None:
         try:
