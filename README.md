@@ -104,11 +104,47 @@ make run-server
 make run-client
 ```
 
-## Submission
 
-Zip the project directory using your required naming format:
+## Project Statistics
+- Files: 25
+- Directories: 4
+- Total lines: 2,436
+- Total size: 86.4 KB (88,434 bytes)
+- Estimated tokens: 183
 
-```bash
-zip -r APPproject5_FirstnameLastname_StudentNumber.zip . \
-  -x "*.git*" "*__pycache__*" "*.pyc" ".venv/*" "venv/*"
+## Project Structure
+
 ```
+course_predator/
+├── Makefile
+├── README.md
+├── course_predator/
+│   ├── __init__.py
+│   ├── client/
+│   │   ├── __init__.py
+│   │   ├── game.py
+│   │   ├── lobby.py
+│   │   ├── mouse.py
+│   │   ├── network.py
+│   │   ├── renderer.py
+│   │   ├── replay.py
+│   │   └── widgets.py
+│   ├── config.py
+│   ├── constants.py
+│   ├── game.py
+│   ├── models.py
+│   ├── protocol.py
+│   ├── replay.py
+│   ├── server.py
+│   └── types.py
+├── pyproject.toml
+├── replays/
+├── requirements.txt
+├── run_client.py
+├── run_server.py
+└── tests/
+    ├── test_game.py
+    └── test_protocol.py
+```
+
+
