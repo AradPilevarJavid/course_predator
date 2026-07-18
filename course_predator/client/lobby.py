@@ -129,8 +129,10 @@ class LobbyApp:
         for button in self.buttons.values():
             button.draw(self.screen, self.font, mouse_pos, dt)
 
-        instr_x = int(WINDOW_WIDTH * 0.07)
-        instr_y = 485
+        # Scale instructions / error position with window height
+        instr_x = int(WINDOW_WIDTH * 0.07)              # ~80 on 1100
+        instr_y = int(WINDOW_HEIGHT * 0.78)             # ~485 on 620+200
+
         instructions = [
             "Host starts a local TCP server and joins as Player 1.",
             "Join connects as Player 1/2. Extra clients become spectators.",
@@ -142,7 +144,9 @@ class LobbyApp:
 
         if self.error:
             error = self.small.render(self.error, True, (255, 117, 128))
+            # Place error right above the first instruction
             self.screen.blit(error, (instr_x, instr_y - 40))
+
 
     def _host_game(self) -> None:
         try:
@@ -195,4 +199,3 @@ class LobbyApp:
     def _cleanup(self) -> None:
         if self.server_process and self.server_process.poll() is None:
             self.server_process.terminate()
-            

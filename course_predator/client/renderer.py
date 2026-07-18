@@ -245,17 +245,24 @@ class Renderer:
         self.screen.blit(surface, surface.get_rect(center=(WINDOW_WIDTH // 2, HUD_HEIGHT + CANVAS_HEIGHT // 2 + offset_y)))
 
     def _center_panel(self, headline: str, subtitle: str) -> None:
-        panel = pygame.Rect(155, 255, 650, 180)
+        # Panel dimensions proportional to window
+        panel_w = int(WINDOW_WIDTH * 0.59)       # ~650 on 1100
+        panel_h = int(WINDOW_HEIGHT * 0.22)      # ~180 on 820
+        panel_x = (WINDOW_WIDTH - panel_w) // 2
+        panel_y = (WINDOW_HEIGHT - panel_h) // 2
+        panel = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+
         overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 120))
         self.screen.blit(overlay, (0, 0))
+
         pygame.draw.rect(self.screen, (25, 32, 46), panel, border_radius=18)
         pygame.draw.rect(self.screen, (99, 201, 255), panel, 3, border_radius=18)
+
         headline_surface = self.big.render(headline, True, (255, 255, 255))
         subtitle_surface = self.small.render(subtitle, True, (205, 216, 232))
-        self.screen.blit(headline_surface, headline_surface.get_rect(center=(panel.centerx, panel.y + 67)))
-        self.screen.blit(subtitle_surface, subtitle_surface.get_rect(center=(panel.centerx, panel.y + 122)))
-
+        self.screen.blit(headline_surface, headline_surface.get_rect(center=(panel.centerx, panel.y + int(panel_h * 0.37))))
+        self.screen.blit(subtitle_surface, subtitle_surface.get_rect(center=(panel.centerx, panel.y + int(panel_h * 0.68))))
 
 def _default_player_state(player_id: int | None) -> PlayerState:
     return {
