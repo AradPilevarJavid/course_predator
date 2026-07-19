@@ -1,3 +1,6 @@
+# Configuration file
+
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
@@ -18,6 +21,8 @@ course-predator-server = "course_predator.server:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+# the two bellow help with code consistancy.
+# The same formatting Configuration all across different files.
 [tool.ruff]
 line-length = 120
 target-version = "py311"

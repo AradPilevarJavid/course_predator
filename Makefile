@@ -1,4 +1,5 @@
-.PHONY: run-server run-client test lint format
+# what comes after the command isn't a real file on the disk.
+.PHONY: run-server run-client test lint format /
 
 run-server:
 	python run_server.py
