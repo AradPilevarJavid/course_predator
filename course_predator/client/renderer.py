@@ -239,9 +239,11 @@ class Renderer:
         bar = pygame.Rect(bar_x, bar_y, bar_w, bar_h)
         pygame.draw.rect(self.screen, (36, 44, 59), bar, border_radius=8)
         pygame.draw.rect(self.screen, (99, 201, 255), (bar.x, bar.y, int(bar_w * progress), bar_h), border_radius=8)
-        def draw_connection_lost(self, status: str) -> None:
-            self.screen.fill((10, 13, 21))
-            self._center_panel("Connection lost", status)
+
+
+    def draw_connection_lost(self, status: str) -> None:
+        self.screen.fill((10, 13, 21))
+        self._center_panel("Connection lost", status)
 
     def _center_message(self, text: str, color: Color, offset_y: int) -> None:
         surface = self.big.render(text, True, color)
