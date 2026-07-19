@@ -46,7 +46,9 @@ class Renderer:
     ) -> None:
         self.draw_background()
         players = state.get("players", {})
-        own_state = players.get(str(player_id), _default_player_state(player_id)) if player_id else _default_player_state(None)
+        own_state = (
+            players.get(str(player_id), _default_player_state(player_id)) if player_id else _default_player_state(None)
+        )
         self._draw_hud(state, players, player_id, role, status, dt)
         self._draw_shapes(state.get("shapes", []))
         self._draw_remote_mice(players, player_id)
@@ -97,7 +99,6 @@ class Renderer:
             effect_text = self.small.render(" | ".join(effects), True, (183, 205, 255))
             self.screen.blit(effect_text, (left + 160, 170 + y_offset))
 
-    
     def _draw_bar(
         self,
         x: int,
@@ -142,7 +143,9 @@ class Renderer:
                 text = "SH"
             elif kind == "ice":
                 color = (100, 205, 255)
-                points = [(x + math.cos(i * math.pi / 3) * radius, y + math.sin(i * math.pi / 3) * radius) for i in range(6)]
+                points = [
+                    (x + math.cos(i * math.pi / 3) * radius, y + math.sin(i * math.pi / 3) * radius) for i in range(6)
+                ]
                 pygame.draw.polygon(self.screen, color, points)
                 text = "ICE"
             elif kind == "illusion":
@@ -216,7 +219,9 @@ class Renderer:
 
     def _draw_waiting_overlay(self, state: GameState) -> None:
         needed = 2 - len(state.get("players", {}))
-        self._center_panel(f"Waiting for {max(0, needed)} more player(s)...", "The server starts automatically when two players join.")
+        self._center_panel(
+            f"Waiting for {max(0, needed)} more player(s)...", "The server starts automatically when two players join."
+        )
 
     def _draw_end_overlay(self, state: GameState, players: dict[str, PlayerState], player_id: int | None) -> None:
         winner = state.get("winner")
@@ -232,7 +237,7 @@ class Renderer:
 
     def draw_calibration_overlay(self, progress: float) -> None:
         self._center_panel("Mouse calibration", "Move your mouse in a circle for smoother control.")
-        bar_w = int(WINDOW_WIDTH * 0.36)   # ~400 on 1100
+        bar_w = int(WINDOW_WIDTH * 0.36)  # ~400 on 1100
         bar_h = 18
         bar_x = (WINDOW_WIDTH - bar_w) // 2
         bar_y = 420
@@ -240,14 +245,15 @@ class Renderer:
         pygame.draw.rect(self.screen, (36, 44, 59), bar, border_radius=8)
         pygame.draw.rect(self.screen, (99, 201, 255), (bar.x, bar.y, int(bar_w * progress), bar_h), border_radius=8)
 
-
     def draw_connection_lost(self, status: str) -> None:
         self.screen.fill((10, 13, 21))
         self._center_panel("Connection lost", status)
 
     def _center_message(self, text: str, color: Color, offset_y: int) -> None:
         surface = self.big.render(text, True, color)
-        self.screen.blit(surface, surface.get_rect(center=(WINDOW_WIDTH // 2, HUD_HEIGHT + CANVAS_HEIGHT // 2 + offset_y)))
+        self.screen.blit(
+            surface, surface.get_rect(center=(WINDOW_WIDTH // 2, HUD_HEIGHT + CANVAS_HEIGHT // 2 + offset_y))
+        )
 
     def _center_panel(self, headline: str, subtitle: str) -> None:
         # Panel dimensions proportional to window
@@ -266,9 +272,13 @@ class Renderer:
 
         headline_surface = self.big.render(headline, True, (255, 255, 255))
         subtitle_surface = self.small.render(subtitle, True, (205, 216, 232))
-        self.screen.blit(headline_surface, headline_surface.get_rect(center=(panel.centerx, panel.y + int(panel_h * 0.37))))
-        self.screen.blit(subtitle_surface, subtitle_surface.get_rect(center=(panel.centerx, panel.y + int(panel_h * 0.68))))
-    
+        self.screen.blit(
+            headline_surface, headline_surface.get_rect(center=(panel.centerx, panel.y + int(panel_h * 0.37)))
+        )
+        self.screen.blit(
+            subtitle_surface, subtitle_surface.get_rect(center=(panel.centerx, panel.y + int(panel_h * 0.68)))
+        )
+
     def draw_connection_lost(self, status: str) -> None:
         self.screen.fill((10, 13, 21))
         self._center_panel("Connection lost", status)

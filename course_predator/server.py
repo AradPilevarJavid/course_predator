@@ -195,11 +195,7 @@ class Server:
 
     def _broadcast_lobby(self) -> None:
         with self.connection_lock, self.game.lock:
-            player_names = [
-                player.name
-                for _, player in sorted(self.game.players.items())
-                if player.connected
-            ]
+            player_names = [player.name for _, player in sorted(self.game.players.items()) if player.connected]
             message = {
                 "type": "lobby",
                 "players": player_names,

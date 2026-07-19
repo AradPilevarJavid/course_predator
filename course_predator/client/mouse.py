@@ -111,7 +111,9 @@ class MouseController:
         if now - self._last_jump >= CURSOR_JUMP_INTERVAL:
             self._last_jump = now
             self.x = clamp(self.x + pygame.Vector2(1, 0).rotate(pygame.time.get_ticks() % 360).x * 45, 0, CANVAS_WIDTH)
-            self.y = clamp(self.y + pygame.Vector2(0, 1).rotate((pygame.time.get_ticks() * 2) % 360).y * 35, 0, CANVAS_HEIGHT)
+            self.y = clamp(
+                self.y + pygame.Vector2(0, 1).rotate((pygame.time.get_ticks() * 2) % 360).y * 35, 0, CANVAS_HEIGHT
+            )
 
     def _load_baseline(self) -> float | None:
         try:

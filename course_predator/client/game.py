@@ -50,7 +50,9 @@ class GameApp:
                 if snapshot.conn_state == ConnState.DISCONNECTED:
                     self.renderer.draw_connection_lost(snapshot.status)
                 elif snapshot.state:
-                    self.renderer.draw_state(snapshot.state, snapshot.player_id, snapshot.role, self.cursor, snapshot.status, dt)
+                    self.renderer.draw_state(
+                        snapshot.state, snapshot.player_id, snapshot.role, self.cursor, snapshot.status, dt
+                    )
                     if self.cursor.calibrating and snapshot.role != "spectator":
                         self.renderer.draw_calibration_overlay(self.cursor.calibration_progress(now))
                 else:

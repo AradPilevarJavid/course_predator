@@ -60,8 +60,7 @@ class LobbyApp:
             "host": TextInput("IP / Host", self.config.host, pygame.Rect(x_host, input_y, host_w, input_h)),
             "port": TextInput("Port", str(self.config.port), pygame.Rect(x_port, input_y, port_w, input_h)),
             "duration": TextInput(
-                "Host Duration", str(self.config.duration),
-                pygame.Rect(x_duration, input_y, duration_w, input_h)
+                "Host Duration", str(self.config.duration), pygame.Rect(x_duration, input_y, duration_w, input_h)
             ),
         }
 
@@ -119,9 +118,7 @@ class LobbyApp:
         self.screen.fill((9, 12, 20))
         title = self.title_font.render("Course Predator", True, (245, 248, 255))
         self.screen.blit(title, title.get_rect(center=(WINDOW_WIDTH // 2, 78)))
-        subtitle = self.small.render(
-            "A real-time 1v1 course-registration reaction race", True, (161, 177, 201)
-        )
+        subtitle = self.small.render("A real-time 1v1 course-registration reaction race", True, (161, 177, 201))
         self.screen.blit(subtitle, subtitle.get_rect(center=(WINDOW_WIDTH // 2, 130)))
 
         for text_input in self.inputs.values():
@@ -130,8 +127,8 @@ class LobbyApp:
             button.draw(self.screen, self.font, mouse_pos, dt)
 
         # Scale instructions / error position with window height
-        instr_x = int(WINDOW_WIDTH * 0.07)              # ~80 on 1100
-        instr_y = int(WINDOW_HEIGHT * 0.78)             # ~485 on 620+200
+        instr_x = int(WINDOW_WIDTH * 0.07)  # ~80 on 1100
+        instr_y = int(WINDOW_HEIGHT * 0.78)  # ~485 on 620+200
 
         instructions = [
             "Host starts a local TCP server and joins as Player 1.",
@@ -146,7 +143,6 @@ class LobbyApp:
             error = self.small.render(self.error, True, (255, 117, 128))
             # Place error right above the first instruction
             self.screen.blit(error, (instr_x, instr_y - 40))
-
 
     def _host_game(self) -> None:
         try:

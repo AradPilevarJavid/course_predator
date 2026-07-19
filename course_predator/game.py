@@ -155,10 +155,7 @@ class Game:
             "winner": self.winner_id,
             "reason": self.end_reason,
             "replay_file": self.replay_file,
-            "players": {
-                str(player_id): player.to_public(now)
-                for player_id, player in sorted(self.players.items())
-            },
+            "players": {str(player_id): player.to_public(now) for player_id, player in sorted(self.players.items())},
             "shapes": self.visible_shapes(now, recipient_player_id, spectator),
             "events": [dict(event) for event in self.recent_events],
             "canvas": {"width": CANVAS_WIDTH, "height": CANVAS_HEIGHT},
@@ -177,9 +174,7 @@ class Game:
             player = self.players.get(recipient_player_id)
             if player:
                 shapes.extend(
-                    shape
-                    for shape in self.real_shapes.values()
-                    if self._shape_visible_to_player(shape, player)
+                    shape for shape in self.real_shapes.values() if self._shape_visible_to_player(shape, player)
                 )
                 shapes.extend(self.illusions.get(recipient_player_id, {}).values())
         return [shape.to_dict(now) for shape in sorted(shapes, key=lambda item: item.spawn_time)]
