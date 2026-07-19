@@ -20,6 +20,7 @@ CONNECTION_LOST_SECONDS = 3.0
 KEEPALIVE_SECONDS = 1.0
 
 
+# Enum = named CONSTANT values that are fixed together.
 class ConnState(Enum):
     DISCONNECTED = 0
     CONNECTING = 1
@@ -29,7 +30,7 @@ class ConnState(Enum):
     ENDED = 5
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True) # frozen = immutable
 class NetworkSnapshot:
     state: GameState | None
     lobby: LobbyState | None
@@ -40,7 +41,8 @@ class NetworkSnapshot:
 
 
 class NetworkClient:
-    """Owns the socket in a background thread and shares state with the GUI."""
+    """Owns the logic of the network side of the client 
+        includes the socket in a background thread and shares state with the GUI."""
 
     def __init__(self, host: str, port: int, name: str, role: str) -> None:
         self.host = host
@@ -52,7 +54,7 @@ class NetworkClient:
         self.running.set()
         self.outbox: queue.Queue[JsonMessage] = queue.Queue()
         self.log_queue: queue.Queue[tuple[int, str]] = queue.Queue()
-        self.state_lock = threading.RLock()
+        self.state_lock = threading.RLock() # locks the block of code that the other thread might also be modifying.
         self.latest_state: GameState | None = None
         self.latest_lobby: LobbyState | None = None
         self.status = "Connecting..."
@@ -174,7 +176,7 @@ class NetworkClient:
 
 
 class GameClient:
-    """Small testable facade for match input and state access."""
+    """Small testable facade(interface) for match input and state access."""
 
     def __init__(self, network: NetworkClient) -> None:
         self.network = network
