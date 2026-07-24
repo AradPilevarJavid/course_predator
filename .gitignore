@@ -8,6 +8,8 @@ replays/*.json
 # pdf
 *.pdf
 
+# markdown
+project.md
 
 # jupyter
 *.ipynb
