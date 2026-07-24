@@ -8,7 +8,7 @@ Color = tuple[int, int, int]
 
 
 class TextInput:
-    """Tiny Pygame text input widget for the lobby."""
+    """Custom pygame text input widget for the lobby."""
 
     def __init__(self, label: str, value: str, rect: pygame.Rect) -> None:
         self.label = label

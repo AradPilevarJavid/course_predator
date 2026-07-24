@@ -68,7 +68,6 @@ class LobbyApp:
             ),
         }
 
-        # Buttons centred row
         btn_y = 280
         btn_h = 50
         btn_gap = 20
@@ -133,7 +132,7 @@ class LobbyApp:
         instr_x = int(WINDOW_WIDTH * 0.07)  # ~80 on 1100
         instr_y = int(WINDOW_HEIGHT * 0.78)  # ~485 on 620+200
 
-        #                         <instructions used to live here>
+        #                         < Instructions used to live here :) >
        
         # for index, line in enumerate(instructions):
         #     surface = self.small.render(line, True, (180, 193, 212))
