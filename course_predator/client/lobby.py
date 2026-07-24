@@ -1,12 +1,4 @@
-"""Pygame lobby app for hosting, joining, spectating, and replay playback."""
-
 from __future__ import annotations
-
-"Host starts a local TCP server and joins as Player 1."
-"Join connects as Player 1/2. Extra clients become spectators."
-"Use the virtual cursor: stress slows it, jumps it, and creates trails."
-
-
 
 import logging
 import subprocess
@@ -14,7 +6,6 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
-
 import pygame
 
 from ..config import load_config
@@ -97,7 +88,7 @@ class LobbyApp:
 
     def run(self) -> None:
         while True:
-            dt = self.clock.tick(60) / 1000.0
+            seconds_per_loop = self.clock.tick(60) / 1000.0
             mouse_pos = pygame.mouse.get_pos()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -114,10 +105,10 @@ class LobbyApp:
                     self._start_game("spectator")
                 elif self.buttons["replay"].is_clicked(event):
                     self._watch_latest_replay()
-            self._draw(dt, mouse_pos)
+            self._draw(seconds_per_loop, mouse_pos)
             pygame.display.flip()
 
-    def _draw(self, dt: float, mouse_pos: tuple[int, int]) -> None:
+    def _draw(self, seconds_per_loop: float, mouse_pos: tuple[int, int]) -> None:
         self.screen.fill((9, 12, 20))
         title = self.title_font.render("Course Predator", True, (245, 248, 255))
         self.screen.blit(title, title.get_rect(center=(WINDOW_WIDTH // 2, 78)))
@@ -127,7 +118,7 @@ class LobbyApp:
         for text_input in self.inputs.values():
             text_input.draw(self.screen, self.font, self.small)
         for button in self.buttons.values():
-            button.draw(self.screen, self.font, mouse_pos, dt)
+            button.draw(self.screen, self.font, mouse_pos, seconds_per_loop)
 
         instr_x = int(WINDOW_WIDTH * 0.07)  # ~80 on 1100
         instr_y = int(WINDOW_HEIGHT * 0.78)  # ~485 on 620+200

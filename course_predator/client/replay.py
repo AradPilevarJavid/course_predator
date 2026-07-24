@@ -1,9 +1,4 @@
-"""Replay playback application."""
-
-from __future__ import annotations
-
 import time
-
 import pygame
 
 from ..constants import WINDOW_WIDTH
@@ -13,8 +8,6 @@ from .renderer import Renderer
 
 
 class ReplayApp:
-    """Plays saved replay JSON snapshots."""
-
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock, replay_path: str) -> None:
         self.screen = screen
         self.clock = clock
@@ -32,8 +25,9 @@ class ReplayApp:
         frame_index = 0
         cursor = MouseController()
         while self.running:
-            dt = self.clock.tick(60) / 1000.0
-            elapsed = time.monotonic() - start
+            seconds_per_loop = self.clock.tick(60) / 1000.0
+            end = time.monotonic()
+            elapsed = end - start
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
@@ -42,7 +36,7 @@ class ReplayApp:
             while frame_index + 1 < len(self.frames) and self.frames[frame_index + 1]["t"] <= elapsed:
                 frame_index += 1
             state = self.frames[frame_index]["state"]
-            self.renderer.draw_state(state, None, "spectator", cursor, f"Replay {self.replay_path}", dt)
+            self.renderer.draw_state(state, None, "spectator", cursor, f"Replay {self.replay_path}", seconds_per_loop)
             note = self.renderer.small.render("Replay mode: Esc/Enter returns to lobby", True, (230, 236, 248))
             self.screen.blit(note, (WINDOW_WIDTH - 310, 48))
             pygame.display.flip()
