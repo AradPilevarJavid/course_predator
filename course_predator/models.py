@@ -21,12 +21,15 @@ class Shape:
     spawn_time: float
     kind: str = "normal"
 
-    @property
+    @property # the result (function output) is the property of the function.
     def expires_at(self) -> float:
         return self.spawn_time + self.lifetime
 
     def is_expired(self, now: float) -> bool:
         return now >= self.expires_at
+
+    # def contains(self, x: float, y: float) -> bool:
+    #     return sqrt((self.x - x)**2, (self.y - y)**2) <= self.radius
 
     def contains(self, x: float, y: float) -> bool:
         return hypot(self.x - x, self.y - y) <= self.radius

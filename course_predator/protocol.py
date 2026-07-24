@@ -1,6 +1,5 @@
 """Small newline-delimited JSON protocol used by clients and server."""
 
-from __future__ import annotations
 
 import json
 import socket
