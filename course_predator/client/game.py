@@ -33,7 +33,7 @@ class GameApp:
         self.client.start()
         try:
             while self.running:
-                dt = self.clock.tick(60) / 1000.0
+                seconds_per_loop = self.clock.tick(60) / 1000.0
                 now = time.monotonic()
                 snapshot = self.client.snapshot()
                 own_state = self._own_state(snapshot.state, snapshot.player_id)
@@ -51,7 +51,7 @@ class GameApp:
                     self.renderer.draw_connection_lost(snapshot.status)
                 elif snapshot.state:
                     self.renderer.draw_state(
-                        snapshot.state, snapshot.player_id, snapshot.role, self.cursor, snapshot.status, dt
+                        snapshot.state, snapshot.player_id, snapshot.role, self.cursor, snapshot.status, seconds_per_loop
                     )
                     if self.cursor.calibrating and snapshot.role != "spectator":
                         self.renderer.draw_calibration_overlay(self.cursor.calibration_progress(now))
