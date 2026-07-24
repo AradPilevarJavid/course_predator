@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+"Host starts a local TCP server and joins as Player 1."
+"Join connects as Player 1/2. Extra clients become spectators."
+"Use the virtual cursor: stress slows it, jumps it, and creates trails."
+
+
+
 import logging
 import subprocess
 import sys
@@ -127,14 +133,11 @@ class LobbyApp:
         instr_x = int(WINDOW_WIDTH * 0.07)  # ~80 on 1100
         instr_y = int(WINDOW_HEIGHT * 0.78)  # ~485 on 620+200
 
-        instructions = [
-            "Host starts a local TCP server and joins as Player 1.",
-            "Join connects as Player 1/2. Extra clients become spectators.",
-            "Use the virtual cursor: stress slows it, jumps it, and creates trails.",
-        ]
-        for index, line in enumerate(instructions):
-            surface = self.small.render(line, True, (180, 193, 212))
-            self.screen.blit(surface, (instr_x, instr_y + index * 26))
+        #                         <instructions used to live here>
+       
+        # for index, line in enumerate(instructions):
+        #     surface = self.small.render(line, True, (180, 193, 212))
+        #     self.screen.blit(surface, (instr_x, instr_y + index * 26))
 
         if self.error:
             error = self.small.render(self.error, True, (255, 117, 128))
