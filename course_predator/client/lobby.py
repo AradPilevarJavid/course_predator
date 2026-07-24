@@ -40,11 +40,9 @@ class LobbyApp:
         input_h = 44
         gap = 15
 
-        # Fixed widths for the two smaller fields so they stay usable
         port_w = 140
         duration_w = 150
 
-        # Remaining width distributed between Name and Host
         total_fixed = port_w + duration_w + 3 * gap
         flexible_width = ww - 2 * margin - total_fixed
         name_w = flexible_width // 2
@@ -126,7 +124,6 @@ class LobbyApp:
         for button in self.buttons.values():
             button.draw(self.screen, self.font, mouse_pos, dt)
 
-        # Scale instructions / error position with window height
         instr_x = int(WINDOW_WIDTH * 0.07)  # ~80 on 1100
         instr_y = int(WINDOW_HEIGHT * 0.78)  # ~485 on 620+200
 
@@ -141,7 +138,6 @@ class LobbyApp:
 
         if self.error:
             error = self.small.render(self.error, True, (255, 117, 128))
-            # Place error right above the first instruction
             self.screen.blit(error, (instr_x, instr_y - 40))
 
     def _host_game(self) -> None:
