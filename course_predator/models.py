@@ -1,7 +1,5 @@
 """Core OOP model classes shared by the server and renderer."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 from math import hypot
 
@@ -28,10 +26,8 @@ class Shape:
     def is_expired(self, now: float) -> bool:
         return now >= self.expires_at
 
-    # def contains(self, x: float, y: float) -> bool:
-    #     return sqrt((self.x - x)**2, (self.y - y)**2) <= self.radius
-
     def contains(self, x: float, y: float) -> bool:
+    # Originally used sqrt; switched to hypot to make it cooler.
         return hypot(self.x - x, self.y - y) <= self.radius
 
     def to_dict(self, now: float) -> ShapeDict:
@@ -135,6 +131,7 @@ class Player:
         return self.stamina <= 10.0
 
     def change_stamina(self, amount: float) -> None:
+        # self.stamina = max(0.0, min(100.0, self.stamina + amount)) 
         self.stamina = clamp(self.stamina + amount, 0.0, 100.0)
 
     def change_stress(self, amount: float) -> None:

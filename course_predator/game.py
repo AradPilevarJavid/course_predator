@@ -1,7 +1,5 @@
 """Authoritative server-side game rules and state transitions."""
 
-from __future__ import annotations
-
 import math
 import random
 import threading
