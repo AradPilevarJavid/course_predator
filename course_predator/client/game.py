@@ -1,9 +1,8 @@
-"""Pygame game application loop."""
+"""Pygame game application(main) loop."""
 
 from __future__ import annotations
 
 import time
-
 import pygame
 
 from ..constants import CANVAS_HEIGHT, WINDOW_WIDTH
@@ -51,7 +50,12 @@ class GameApp:
                     self.renderer.draw_connection_lost(snapshot.status)
                 elif snapshot.state:
                     self.renderer.draw_state(
-                        snapshot.state, snapshot.player_id, snapshot.role, self.cursor, snapshot.status, seconds_per_loop
+                        snapshot.state,
+                        snapshot.player_id,
+                        snapshot.role,
+                        self.cursor,
+                        snapshot.status,
+                        seconds_per_loop,
                     )
                     if self.cursor.calibrating and snapshot.role != "spectator":
                         self.renderer.draw_calibration_overlay(self.cursor.calibration_progress(now))

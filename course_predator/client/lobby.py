@@ -19,8 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class LobbyApp:
-    """Launches a host server, joins a remote server, or opens replays."""
-
     def __init__(self) -> None:
         self.config = load_config()
         pygame.init()

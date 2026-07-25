@@ -41,7 +41,7 @@ class NetworkSnapshot:
 
 
 class NetworkClient:
-    """Owns the logic of the network side of the client 
+    """Owns the logic of the network side of the client.    >Threading<
         includes the socket in a background thread and shares state with the GUI."""
 
     def __init__(self, host: str, port: int, name: str, role: str) -> None:

@@ -1,4 +1,4 @@
-"""Pygame drawing helpers for game and replay screens."""
+"""Pygame drawing HELPERS for game and replay screens."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from .widgets import Color
 
 
 class Renderer:
-    """Pygame drawing helpers for game and replay screens."""
+    """Pygame drawing HELPERS for game and replay screens."""
 
     def __init__(self, screen: pygame.Surface) -> None:
         self.screen = screen
