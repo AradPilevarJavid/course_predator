@@ -38,8 +38,7 @@ class Renderer:
                 img = pygame.image.load(path).convert_alpha()
                 self.object_images[kind] = img
             except Exception:
-                self.object_images[kind] = None   # will fallback to primitives if image missing
-        # --- end image loading ---
+                self.object_images[kind] = None
 
     def draw_background(self) -> None:
         self.screen.fill((10, 13, 21))
@@ -287,7 +286,6 @@ class Renderer:
         )
 
     def _center_panel(self, headline: str, subtitle: str) -> None:
-        # Panel dimensions proportional to window
         panel_w = int(WINDOW_WIDTH * 0.59)
         panel_h = int(WINDOW_HEIGHT * 0.22)
         panel_x = (WINDOW_WIDTH - panel_w) // 2
