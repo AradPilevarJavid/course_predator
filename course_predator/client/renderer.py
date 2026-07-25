@@ -154,7 +154,7 @@ class Renderer:
             else:
                 points = int(shape["points"])
                 image_key = 'normal_positive' if points > 0 else 'normal_negative'
-                text = score_text(float(points)) if points > 0 else text = str(abs(points))
+                text = score_text(float(points)) if points > 0 else str(abs(points))
 
             img = self.object_images.get(image_key)
             if img is not None:
