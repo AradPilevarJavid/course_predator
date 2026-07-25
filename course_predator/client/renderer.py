@@ -1,8 +1,5 @@
-"""Pygame drawing HELPERS for game and replay screens."""
-
-from __future__ import annotations
-
 import math
+import os
 import time
 
 import pygame
@@ -25,6 +22,24 @@ class Renderer:
         self.title = pygame.font.SysFont("arial", 56, bold=True)
         self.display_stamina: dict[int, float] = {1: 100.0, 2: 100.0}
         self.display_stress: dict[int, float] = {1: 0.0, 2: 0.0}
+
+        self.object_images = {}
+        asset_dir = os.path.join(os.path.dirname(__file__), '../../assets')
+        image_map = {
+            'shield': 'shield.jpg',
+            'ice': 'ice.png',
+            'illusion': 'illusion.png',
+            'normal_positive': 'normal_positive.png',
+            'normal_negative': 'normal_negative.png',
+        }
+        for kind, filename in image_map.items():
+            path = os.path.join(asset_dir, filename)
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                self.object_images[kind] = img
+            except Exception:
+                self.object_images[kind] = None   # will fallback to primitives if image missing
+        # --- end image loading ---
 
     def draw_background(self) -> None:
         self.screen.fill((10, 13, 21))
@@ -126,43 +141,59 @@ class Renderer:
             y = int(shape["y"]) + HUD_HEIGHT
             radius = int(shape["radius"])
             kind = shape["kind"]
-            if kind == "shield":
-                color = (83, 226, 169)
-                pygame.draw.polygon(
-                    self.screen,
-                    color,
-                    [
-                        (x, y - radius),
-                        (x + radius, y - radius // 3),
-                        (x + radius // 2, y + radius),
-                        (x, y + radius // 2),
-                        (x - radius // 2, y + radius),
-                        (x - radius, y - radius // 3),
-                    ],
-                )
-                text = "SH"
-            elif kind == "ice":
-                color = (100, 205, 255)
-                points = [
-                    (x + math.cos(i * math.pi / 3) * radius, y + math.sin(i * math.pi / 3) * radius) for i in range(6)
-                ]
-                pygame.draw.polygon(self.screen, color, points)
-                text = "ICE"
-            elif kind == "illusion":
-                color = (184, 116, 255)
-                pygame.draw.circle(self.screen, color, (x, y), radius, 3)
+
+            if kind == 'shield':
+                image_key = 'shield'
+                text = ""
+            elif kind == 'ice':
+                image_key = 'ice'
+                text = ""
+            elif kind == 'illusion':
+                image_key = 'illusion'
                 text = score_text(float(shape["points"]))
             else:
                 points = int(shape["points"])
-                color = (255, 202, 84) if points > 0 else (255, 101, 113)
-                pygame.draw.circle(self.screen, color, (x, y), radius)
-                text = score_text(float(points))
+                image_key = 'normal_positive' if points > 0 else 'normal_negative'
+                text = score_text(float(points)) if points > 0 else text = str(abs(points))
 
-            pygame.draw.circle(self.screen, (255, 255, 255), (x, y), radius, 2)
-            text_surface = self.font.render(text, True, (11, 16, 24))
+            img = self.object_images.get(image_key)
+            if img is not None:
+                scaled_img = pygame.transform.scale(img, (radius * 2, radius * 2))
+                img_rect = scaled_img.get_rect(center=(x, y))
+                self.screen.blit(scaled_img, img_rect)
+            else: # fallback
+                if kind == 'shield':
+                    color = (83, 226, 169)
+                    pygame.draw.polygon(
+                        self.screen,
+                        color,
+                        [
+                            (x, y - radius),
+                            (x + radius, y - radius // 3),
+                            (x + radius // 2, y + radius),
+                            (x, y + radius // 2),
+                            (x - radius // 2, y + radius),
+                            (x - radius, y - radius // 3),
+                        ],
+                    )
+                elif kind == 'ice':
+                    color = (100, 205, 255)
+                    points = [
+                        (x + math.cos(i * math.pi / 3) * radius, y + math.sin(i * math.pi / 3) * radius) for i in range(6)
+                    ]
+                    pygame.draw.polygon(self.screen, color, points)
+                elif kind == 'illusion':
+                    color = (184, 116, 255)
+                    pygame.draw.circle(self.screen, color, (x, y), radius, 3)
+                else:
+                    points = int(shape["points"])
+                    color = (255, 202, 84) if points > 0 else (255, 101, 113)
+                    pygame.draw.circle(self.screen, color, (x, y), radius)
+
+            text_surface = self.font.render(text, True, (255, 255, 255))
             if kind == "illusion":
                 text_surface = self.font.render(text, True, (218, 190, 255))
-            self.screen.blit(text_surface, text_surface.get_rect(center=(x, y)))
+            self.screen.blit(text_surface, text_surface.get_rect(center=(x+6, y)))
             ttl = float(shape.get("ttl", 0.0))
             lifetime = max(0.1, float(shape.get("lifetime", 1.0)))
             arc_rect = pygame.Rect(x - radius - 5, y - radius - 5, radius * 2 + 10, radius * 2 + 10)
