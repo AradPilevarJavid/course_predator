@@ -1,4 +1,4 @@
-"""Typed JSON payloads shared by the server, client, and replay system."""
+"""Single source of truth.no execution just explaination."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Runtime configuration loaded from defaults, config.json, and environment."""
+"""Default configurations, in order: 1,Environment variable, 2.config.json, 3.constants.py."""
 
 import json
 import os
