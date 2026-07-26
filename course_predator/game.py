@@ -65,11 +65,12 @@ class Game:
             return
         player.connected = False
         if self.active and not self.ended:
-            opponent_id = 1 if player_id == 2 else 2
-            self._finish(now, f"{player.name} disconnected", opponent_id)
+            connected_players = [p for p in self.players.values() if p.connected]
+            if not connected_players:
+                self._finish(now, "All players disconnected", None)
 
-    def can_start(self) -> bool:
-        return len(self.players) == 2 and not self.active and not self.ended
+    def can_start(self, min_players: int) -> bool:
+        return len(self.players) >= min_players and not self.active and not self.ended
 
     def start(self, now: float) -> bool:
         if not self.can_start():
@@ -191,10 +192,13 @@ class Game:
 
         if shape.kind == "ice":
             player.apply_click_cost(now, STAMINA_CLICK_COST)
-            opponent = self.players.get(1 if player.player_id == 2 else 2)
-            if opponent:
-                opponent.extend_freeze(now, ICE_SECONDS)
-            return self._event(now, "ice", player.player_id, x, y, "Opponent frozen")
+            candidates = [p for pid, p in self.players.items()
+                        if pid != player.player_id and p.connected]
+            if not candidates:
+                return self._event(now, "ice", player.player_id, x, y, "No target to freeze")
+            target = max(candidates, key=lambda p: (p.score, -p.player_id))
+            target.extend_freeze(now, ICE_SECONDS)
+            return self._event(now, "ice", player.player_id, x, y, f"{target.name} frozen")
 
         high_stamina = player.stamina >= 90.0
         player.apply_click_cost(now, STAMINA_CLICK_COST)

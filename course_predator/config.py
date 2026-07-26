@@ -14,6 +14,8 @@ from .constants import (
     REPLAY_RECORD_RATE,
     SERVER_TICK_RATE,
     STATE_BROADCAST_RATE,
+    MIN_PLAYERS,
+    MAX_PLAYERS
 )
 
 
@@ -25,6 +27,10 @@ class Config:
     host: str = DEFAULT_HOST
     port: int = DEFAULT_PORT
     duration: int = DEFAULT_DURATION
+    min_players: int = MIN_PLAYERS
+    max_players: int = MAX_PLAYERS
+    min_players=_get_int(values, "min_players", "COURSE_PREDATOR_MIN_PLAYERS", MIN_PLAYERS),
+    max_players=_get_int(values, "max_players", "COURSE_PREDATOR_MAX_PLAYERS", MAX_PLAYERS),
     replay_dir: str = REPLAY_DIR
     server_tick_rate: int = SERVER_TICK_RATE
     state_broadcast_rate: int = STATE_BROADCAST_RATE

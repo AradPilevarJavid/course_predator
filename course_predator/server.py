@@ -104,31 +104,30 @@ class Server:
             except OSError:
                 pass
 
-    def _register_connection(
-        self,
-        json_socket: JsonSocket,
-        address: tuple[str, int],
-        hello: dict[str, Any],
-    ) -> Connection:
-        requested_role = str(hello.get("role", "player")).lower()
-        name = str(hello.get("name") or "Student")
-        now = time.monotonic()
-        with self.connection_lock, self.game.lock:
-            player_count = sum(1 for item in self.connections if item.role == "player" and item.alive)
-            if requested_role == "spectator" or player_count >= 2 or self.game.active or self.game.ended:
-                connection = Connection(json_socket, address, "spectator", None, name[:24] or "Spectator")
-            else:
-                player_id = 1 if 1 not in self.game.players else 2
-                connection = Connection(json_socket, address, "player", player_id, name[:24] or f"Player {player_id}")
-                self.game.add_player(player_id, connection.name, now)
+def _register_connection(self, json_socket, address, hello):
+    requested_role = str(hello.get("role", "player")).lower()
+    name = str(hello.get("name") or "Student")
+    now = time.monotonic()
+    with self.connection_lock, self.game.lock:
+        player_count = sum(1 for c in self.connections if c.role == "player" and c.alive)
+        if requested_role == "spectator" or player_count >= self.config.max_players or self.game.active or self.game.ended:
+            connection = Connection(json_socket, address, "spectator", None, name[:24] or "Spectator")
+        else:
+            player_id = None
+            for pid in range(1, self.config.max_players + 1):
+                if pid not in self.game.players:
+                    player_id = pid
+                    break
+            connection = Connection(json_socket, address, "player", player_id, name[:24] or f"Player {player_id}")
+            self.game.add_player(player_id, connection.name, now)
 
-            self.connections.append(connection)
-            if self.game.can_start():
-                self.game.start(now)
-                self.recorder.start(now)
-                self._saved_replay = False
-                logger.info("Game started")
-            return connection
+        self.connections.append(connection)
+        if self.game.can_start(self.config.min_players):
+            self.game.start(now)
+            self.recorder.start(now)
+            self._saved_replay = False
+            logger.info("Game started")
+        return connection
 
     def _welcome_message(self, connection: Connection) -> dict[str, Any]:
         return {
@@ -192,12 +191,13 @@ class Server:
             time.sleep(sleep_for)
 
     def _broadcast_lobby(self) -> None:
+        needed = max(0, self.config.min_players - len(self.game.players))
         with self.connection_lock, self.game.lock:
             player_names = [player.name for _, player in sorted(self.game.players.items()) if player.connected]
             message = {
                 "type": "lobby",
                 "players": player_names,
-                "needed": max(0, 2 - len(player_names)),
+                "needed": needed,
                 "duration": self.duration,
             }
             self._send_all(message)

@@ -12,16 +12,14 @@ from .widgets import Color
 
 
 class Renderer:
-    """Pygame drawing HELPERS for game and replay screens."""
-
     def __init__(self, screen: pygame.Surface) -> None:
         self.screen = screen
         self.font = pygame.font.SysFont("arial", 24, bold=True)
         self.small = pygame.font.SysFont("arial", 17)
         self.big = pygame.font.SysFont("arial", 46, bold=True)
         self.title = pygame.font.SysFont("arial", 56, bold=True)
-        self.display_stamina: dict[int, float] = {1: 100.0, 2: 100.0}
-        self.display_stress: dict[int, float] = {1: 0.0, 2: 0.0}
+        self.display_stamina: dict[int, float] = {}
+        self.display_stress: dict[int, float] = {}
 
         self.object_images = {}
         asset_dir = os.path.join(os.path.dirname(__file__), '../../assets')
@@ -75,6 +73,18 @@ class Renderer:
         if state.get("ended"):
             self._draw_end_overlay(state, players, player_id)
 
+    def _get_leader_id(self, players: dict[str, PlayerState]) -> int | None:
+        if not players:
+            return None
+        sorted_players = sorted(players.items(), key=lambda item: item[1].get("score", 0.0), reverse=True)
+        return int(sorted_players[0][0]) if sorted_players else None
+
+    def _get_second_place_id(self, players: dict[str, PlayerState]) -> int | None:
+        if len(players) < 2:
+            return None
+        sorted_players = sorted(players.items(), key=lambda item: item[1].get("score", 0.0), reverse=True)
+        return int(sorted_players[1][0])
+
     def _draw_hud(
         self,
         state: GameState,
@@ -85,7 +95,6 @@ class Renderer:
         dt: float,
     ) -> None:
         y_offset = 0
-
         pygame.draw.rect(self.screen, (13, 18, 29), (0, 0, WINDOW_WIDTH, HUD_HEIGHT))
         title = self.font.render("Course Predator: Registration Race", True, (242, 246, 255))
         self.screen.blit(title, (22, 55 + y_offset))
@@ -95,23 +104,62 @@ class Renderer:
         status_surface = self.small.render(f"{role_text} • {status}", True, (163, 178, 198))
         self.screen.blit(status_surface, (22, 90 + y_offset))
 
-        for idx, player_key in enumerate(("1", "2")):
-            player = players.get(player_key, _default_player_state(idx + 1))
-            left = 22 + idx * 595
-            name = player.get("name", f"Player {player_key}")
+        display_players: list[int] = []
+
+        if role == "spectator":
+            leader = self._get_leader_id(players)
+            second = self._get_second_place_id(players)
+            if leader is not None:
+                display_players.append(leader)
+            if second is not None and second != leader:
+                display_players.append(second)
+        else:
+            if player_id is None:
+                return
+            leader = self._get_leader_id(players)
+            second = self._get_second_place_id(players)
+
+            if leader == player_id:
+                display_players.append(player_id)
+                if second is not None and second != player_id:
+                    display_players.append(second)
+            else:
+                display_players.append(player_id)
+                if leader is not None:
+                    display_players.append(leader)
+
+        display_players = list(dict.fromkeys(display_players))
+
+        column_width = 595
+        left_positions = [22, 22 + column_width]
+
+        for idx, pid in enumerate(display_players):
+            if idx >= len(left_positions):
+                break
+            key = str(pid)
+            player = players.get(key)
+            if not player:
+                continue
+            left = left_positions[idx]
+            top = 140
+
+            name = player.get("name", f"P{pid}")
             score = score_text(float(player.get("score", 0.0)))
-            name_color = (99, 201, 255) if player.get("id") == player_id else (229, 236, 245)
+            name_color = (99, 201, 255) if pid == player_id else (229, 236, 245)
             label = self.font.render(f"{name}: {score}", True, name_color)
-            self.screen.blit(label, (left, 140 + y_offset))
-            self._draw_bar(left + 160, 150 + y_offset, 150, 16, player, "stamina", idx + 1, (78, 222, 137), dt)
-            self._draw_bar(left + 320, 150 + y_offset, 150, 16, player, "stress", idx + 1, (255, 99, 111), dt)
+            self.screen.blit(label, (left, top))
+
+            bar_w = 150
+            self._draw_bar(left + 160, top + 10, bar_w, 14, player, "stamina", pid, (78, 222, 137), dt)
+            self._draw_bar(left + 160 + bar_w + 10, top + 10, bar_w, 14, player, "stress", pid, (255, 99, 111), dt)
+
             effects = []
             if float(player.get("shield", 0)) > 0:
                 effects.append(f"Shield {player['shield']:.1f}")
             if float(player.get("frozen", 0)) > 0:
                 effects.append(f"Frozen {player['frozen']:.1f}")
             effect_text = self.small.render(" | ".join(effects), True, (183, 205, 255))
-            self.screen.blit(effect_text, (left + 160, 170 + y_offset))
+            self.screen.blit(effect_text, (left + 160, top + 28))
 
     def _draw_bar(
         self,
@@ -127,6 +175,8 @@ class Renderer:
     ) -> None:
         target = float(player.get(key, 0.0))
         display = self.display_stamina if key == "stamina" else self.display_stress
+        if player_id not in display:
+            display[player_id] = 100.0 if key == "stamina" else 0.0
         display[player_id] += (target - display[player_id]) * min(1.0, dt * 7.0)
         pygame.draw.rect(self.screen, (36, 44, 59), (x, y, width, height), border_radius=7)
         fill_width = int(width * display[player_id] / 100.0)
@@ -160,7 +210,7 @@ class Renderer:
                 scaled_img = pygame.transform.scale(img, (radius * 2, radius * 2))
                 img_rect = scaled_img.get_rect(center=(x, y))
                 self.screen.blit(scaled_img, img_rect)
-            else: # fallback
+            else:
                 if kind == 'shield':
                     color = (83, 226, 169)
                     pygame.draw.polygon(
@@ -267,7 +317,7 @@ class Renderer:
 
     def draw_calibration_overlay(self, progress: float) -> None:
         self._center_panel("Mouse calibration", "Move your mouse in a circle for smoother control.")
-        bar_w = int(WINDOW_WIDTH * 0.36)  # ~400 on 1100
+        bar_w = int(WINDOW_WIDTH * 0.36)
         bar_h = 18
         bar_x = (WINDOW_WIDTH - bar_w) // 2
         bar_y = 420
@@ -307,10 +357,6 @@ class Renderer:
         self.screen.blit(
             subtitle_surface, subtitle_surface.get_rect(center=(panel.centerx, panel.y + int(panel_h * 0.68)))
         )
-
-    def draw_connection_lost(self, status: str) -> None:
-        self.screen.fill((10, 13, 21))
-        self._center_panel("Connection lost", status)
 
 
 def _default_player_state(player_id: int | None) -> PlayerState:
