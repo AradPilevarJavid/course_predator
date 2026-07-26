@@ -36,8 +36,6 @@ class Connection:
 
 
 class Server:
-    """Accepts players/spectators and runs the authoritative game loop."""
-
     def __init__(self, host: str, port: int, duration: int) -> None:
         self.config = load_config()
         self.host = host
