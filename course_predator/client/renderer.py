@@ -298,9 +298,9 @@ class Renderer:
             self._center_message("FROZEN", (118, 217, 255), 10)
 
     def _draw_waiting_overlay(self, state: GameState) -> None:
-        needed = 2 - len(state.get("players", {}))
+        needed = state.get("needed", 0)
         self._center_panel(
-            f"Waiting for {max(0, needed)} more player(s)...", "The server starts automatically when two players join."
+            f"Waiting for {needed} more player(s)...", "The server starts automatically when enough players join."
         )
 
     def _draw_end_overlay(self, state: GameState, players: dict[str, PlayerState], player_id: int | None) -> None:

@@ -5,7 +5,7 @@ from course_predator.models import IceShape, NormalShape
 
 
 def _started_game() -> Game:
-    game = Game(duration=30)
+    game = Game(duration=30, min_players=2)
     game.add_player(1, "P1", now=0.0)
     game.add_player(2, "P2", now=0.0)
     assert game.start(now=0.0)

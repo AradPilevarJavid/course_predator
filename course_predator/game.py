@@ -30,11 +30,12 @@ from .types import EventDict, GameState, ShapeDict
 class Game:
     """Authoritative match state; all public methods are protected by self.lock."""
 
-    def __init__(self, duration: int) -> None:
+    def __init__(self, duration: int, min_players: int) -> None:
         self.duration = duration
+        self.min_players = min_players
         self.players: dict[int, Player] = {}
         self.real_shapes: dict[str, Shape] = {}
-        self.illusions: dict[int, dict[str, IllusionShape]] = {1: {}, 2: {}}
+        self.illusions: dict[int, dict[str, IllusionShape]] = {}
         self.lock = threading.RLock()
         self.random = random.Random()
         self.active = False
@@ -69,8 +70,8 @@ class Game:
             if not connected_players:
                 self._finish(now, "All players disconnected", None)
 
-    def can_start(self, min_players: int) -> bool:
-        return len(self.players) >= min_players and not self.active and not self.ended
+    def can_start(self) -> bool:
+        return len(self.players) >= self.min_players and not self.active and not self.ended
 
     def start(self, now: float) -> bool:
         if not self.can_start():
@@ -81,7 +82,7 @@ class Game:
         self.end_time = now + self.duration
         self.next_shape_spawn = now + 0.8
         self.real_shapes.clear()
-        self.illusions = {1: {}, 2: {}}
+        self.illusions = {}
         self.recent_events.clear()
         for player in self.players.values():
             player.score = 0.0
@@ -151,6 +152,7 @@ class Game:
             "ended": self.ended,
             "duration": self.duration,
             "time_left": max(0.0, round(self.end_time - now, 2)) if self.active else 0.0,
+            "needed": max(0, self.min_players - sum(player.connected for player in self.players.values())),
             "winner": self.winner_id,
             "reason": self.end_reason,
             "replay_file": self.replay_file,
@@ -192,11 +194,14 @@ class Game:
 
         if shape.kind == "ice":
             player.apply_click_cost(now, STAMINA_CLICK_COST)
-            candidates = [p for pid, p in self.players.items()
-                        if pid != player.player_id and p.connected]
+            candidates = [
+                opponent
+                for opponent_id, opponent in self.players.items()
+                if opponent_id != player.player_id and opponent.connected
+            ]
             if not candidates:
                 return self._event(now, "ice", player.player_id, x, y, "No target to freeze")
-            target = max(candidates, key=lambda p: (p.score, -p.player_id))
+            target = max(candidates, key=lambda opponent: (opponent.score, -opponent.player_id))
             target.extend_freeze(now, ICE_SECONDS)
             return self._event(now, "ice", player.player_id, x, y, f"{target.name} frozen")
 

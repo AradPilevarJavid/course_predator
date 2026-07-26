@@ -10,12 +10,12 @@ from .constants import (
     DEFAULT_DURATION,
     DEFAULT_HOST,
     DEFAULT_PORT,
+    MAX_PLAYERS,
+    MIN_PLAYERS,
     REPLAY_DIR,
     REPLAY_RECORD_RATE,
     SERVER_TICK_RATE,
     STATE_BROADCAST_RATE,
-    MIN_PLAYERS,
-    MAX_PLAYERS
 )
 
 
@@ -29,8 +29,6 @@ class Config:
     duration: int = DEFAULT_DURATION
     min_players: int = MIN_PLAYERS
     max_players: int = MAX_PLAYERS
-    min_players=_get_int(values, "min_players", "COURSE_PREDATOR_MIN_PLAYERS", MIN_PLAYERS),
-    max_players=_get_int(values, "max_players", "COURSE_PREDATOR_MAX_PLAYERS", MAX_PLAYERS),
     replay_dir: str = REPLAY_DIR
     server_tick_rate: int = SERVER_TICK_RATE
     state_broadcast_rate: int = STATE_BROADCAST_RATE
@@ -63,6 +61,8 @@ def load_config(path: str | Path | None = None) -> Config:
         host=_get_str(values, "host", "COURSE_PREDATOR_HOST", DEFAULT_HOST),
         port=_get_int(values, "port", "COURSE_PREDATOR_PORT", DEFAULT_PORT),
         duration=_get_int(values, "duration", "COURSE_PREDATOR_DURATION", DEFAULT_DURATION),
+        min_players=_get_int(values, "min_players", "COURSE_PREDATOR_MIN_PLAYERS", MIN_PLAYERS),
+        max_players=_get_int(values, "max_players", "COURSE_PREDATOR_MAX_PLAYERS", MAX_PLAYERS),
         replay_dir=_get_str(values, "replay_dir", "COURSE_PREDATOR_REPLAY_DIR", REPLAY_DIR),
         server_tick_rate=_get_int(
             values,

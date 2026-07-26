@@ -51,6 +51,7 @@ class GameState(TypedDict):
     ended: bool
     duration: int
     time_left: float
+    needed: int
     winner: int | None
     reason: str
     replay_file: str

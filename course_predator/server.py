@@ -41,7 +41,7 @@ class Server:
         self.host = host
         self.port = port
         self.duration = max(MIN_DURATION, min(MAX_DURATION, duration))
-        self.game = Game(self.duration)
+        self.game = Game(self.duration, self.config.min_players)
         self.connections: list[Connection] = []
         self.connection_lock = threading.RLock()
         self.shutdown_event = threading.Event()
@@ -57,7 +57,12 @@ class Server:
             server_socket.listen()
             server_socket.settimeout(0.5)
             logger.info("Course Predator server listening on %s:%s", self.host, self.port)
-            logger.info("Waiting for exactly 2 players. Duration: %ss", self.duration)
+            logger.info(
+                "Waiting for %s-%s players. Duration: %ss",
+                self.config.min_players,
+                self.config.max_players,
+                self.duration,
+            )
 
             threading.Thread(target=self._game_loop, daemon=True).start()
 
@@ -104,30 +109,35 @@ class Server:
             except OSError:
                 pass
 
-def _register_connection(self, json_socket, address, hello):
-    requested_role = str(hello.get("role", "player")).lower()
-    name = str(hello.get("name") or "Student")
-    now = time.monotonic()
-    with self.connection_lock, self.game.lock:
-        player_count = sum(1 for c in self.connections if c.role == "player" and c.alive)
-        if requested_role == "spectator" or player_count >= self.config.max_players or self.game.active or self.game.ended:
-            connection = Connection(json_socket, address, "spectator", None, name[:24] or "Spectator")
-        else:
-            player_id = None
-            for pid in range(1, self.config.max_players + 1):
-                if pid not in self.game.players:
-                    player_id = pid
-                    break
-            connection = Connection(json_socket, address, "player", player_id, name[:24] or f"Player {player_id}")
-            self.game.add_player(player_id, connection.name, now)
+    def _register_connection(self, json_socket, address, hello):
+        requested_role = str(hello.get("role", "player")).lower()
+        name = str(hello.get("name") or "Student")
+        now = time.monotonic()
+        with self.connection_lock, self.game.lock:
+            player_count = sum(1 for c in self.connections if c.role == "player" and c.alive)
+            if (
+                requested_role == "spectator"
+                or player_count >= self.config.max_players
+                or self.game.active
+                or self.game.ended
+            ):
+                connection = Connection(json_socket, address, "spectator", None, name[:24] or "Spectator")
+            else:
+                player_id = None
+                for pid in range(1, self.config.max_players + 1):
+                    if pid not in self.game.players:
+                        player_id = pid
+                        break
+                connection = Connection(json_socket, address, "player", player_id, name[:24] or f"Player {player_id}")
+                self.game.add_player(player_id, connection.name, now)
 
-        self.connections.append(connection)
-        if self.game.can_start(self.config.min_players):
-            self.game.start(now)
-            self.recorder.start(now)
-            self._saved_replay = False
-            logger.info("Game started")
-        return connection
+            self.connections.append(connection)
+            if self.game.can_start():
+                self.game.start(now)
+                self.recorder.start(now)
+                self._saved_replay = False
+                logger.info("Game started")
+            return connection
 
     def _welcome_message(self, connection: Connection) -> dict[str, Any]:
         return {
@@ -191,9 +201,9 @@ def _register_connection(self, json_socket, address, hello):
             time.sleep(sleep_for)
 
     def _broadcast_lobby(self) -> None:
-        needed = max(0, self.config.min_players - len(self.game.players))
         with self.connection_lock, self.game.lock:
             player_names = [player.name for _, player in sorted(self.game.players.items()) if player.connected]
+            needed = max(0, self.game.min_players - len(player_names))
             message = {
                 "type": "lobby",
                 "players": player_names,
