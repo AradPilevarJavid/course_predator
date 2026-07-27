@@ -56,14 +56,10 @@ class Server:
             server_socket.bind((self.host, self.port))
             server_socket.listen()
             server_socket.settimeout(0.5)
-            logger.info("Course Predator server listening on %s:%s", self.host, self.port)
+            logger.info(f"Course Predator server listening on {self.host}:{self.port}")
             logger.info(
-                "Waiting for %s-%s players. Duration: %ss",
-                self.config.min_players,
-                self.config.max_players,
-                self.duration,
+                f"Waiting for {self.config.min_players}-{self.config.max_players} players. Duration: {self.duration}s"
             )
-
             threading.Thread(target=self._game_loop, daemon=True).start()
 
             try:

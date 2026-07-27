@@ -11,7 +11,7 @@ from .types import GameState
 
 
 class ReplayRecorder:
-    """Stores compact snapshots so the match can be watched later."""
+    """Compact snapshots"""
 
     def __init__(self, enabled: bool = True, replay_dir: str | Path = REPLAY_DIR) -> None:
         self.enabled = enabled
