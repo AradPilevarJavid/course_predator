@@ -45,8 +45,10 @@ class Server:
         self.connections: list[Connection] = []
         self.connection_lock = threading.RLock()
         self.shutdown_event = threading.Event()
+        self._shutdown_after_replay = threading.Event()
         self.recorder = ReplayRecorder(enabled=True, replay_dir=self.config.replay_dir)
         self._saved_replay = False
+        self._match_started = False
         self._last_broadcast = 0.0
         self._last_replay_frame = 0.0
 
@@ -132,6 +134,7 @@ class Server:
                 self.game.start(now)
                 self.recorder.start(now)
                 self._saved_replay = False
+                self._match_started = True
                 logger.info("Game started")
             return connection
 
@@ -174,6 +177,12 @@ class Server:
                     self.game.mark_disconnected(connection.player_id, time.monotonic())
                 else:
                     self.game.remove_waiting_player(connection.player_id)
+            if (
+                self._match_started
+                and self.game.ended
+                and not any(c.role == "player" and c.alive for c in self.connections)
+            ):
+                self._shutdown_after_replay.set()
             self._broadcast_lobby()
 
     def _game_loop(self) -> None:
@@ -182,6 +191,7 @@ class Server:
         while not self.shutdown_event.is_set():
             next_tick += tick_interval
             now = time.monotonic()
+            should_shutdown = False
             with self.game.lock:
                 ended_this_tick = self.game.update(now)
                 if self.game.active and now - self._last_replay_frame >= 1.0 / self.config.replay_record_rate:
@@ -191,8 +201,13 @@ class Server:
                     self.recorder.record(now, self.game.to_state(now, None, spectator=True))
                     self.game.replay_file = self.recorder.save(self.duration, self.game.winner_id)
                     self._saved_replay = True
+                should_shutdown = (
+                    self._shutdown_after_replay.is_set() and self.game.ended and self._saved_replay
+                )
 
             self._broadcast_state()
+            if should_shutdown:
+                self.shutdown_event.set()
             sleep_for = max(0.0, next_tick - time.monotonic())
             time.sleep(sleep_for)
 
