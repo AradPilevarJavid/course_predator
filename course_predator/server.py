@@ -52,8 +52,10 @@ class Server:
         self._match_started = False
         self._last_broadcast = 0.0
         self._last_replay_frame = 0.0
+        self._game_thread: threading.Thread | None = None
 
     def run(self) -> None:
+        self.shutdown_event.clear()
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_socket.bind((self.host, self.port))
@@ -63,7 +65,8 @@ class Server:
             logger.info(
                 f"Waiting for {self.config.min_players}-{self.config.max_players} players. Duration: {self.duration}s"
             )
-            threading.Thread(target=self._game_loop, daemon=True).start()
+            self._game_thread = threading.Thread(target=self._game_loop, daemon=True)
+            self._game_thread.start()
 
             try:
                 while not self.shutdown_event.is_set():
@@ -80,6 +83,25 @@ class Server:
                 logger.info("Server shutting down")
             finally:
                 self.shutdown_event.set()
+                self._close_connections()
+                if self._game_thread is not None and self._game_thread is not threading.current_thread():
+                    self._game_thread.join(timeout=1.0)
+                self._game_thread = None
+
+    def _close_connections(self) -> None:
+        with self.connection_lock:
+            connections = list(self.connections)
+            self.connections.clear()
+        for connection in connections:
+            connection.alive = False
+            try:
+                connection.json_socket.sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            try:
+                connection.json_socket.sock.close()
+            except OSError:
+                pass
 
     def _handle_client(self, sock: socket.socket, address: tuple[str, int]) -> None:
         sock.settimeout(10.0)

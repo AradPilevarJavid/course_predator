@@ -38,7 +38,13 @@ def main() -> None:
             ReplayApp(screen, clock, args.replay).run()
         else:
             role = "spectator" if args.spectator else "player"
-            network = NetworkClient(args.host or DEFAULT_HOST, args.port or DEFAULT_PORT, args.name, role, args.room_token)
+            network = NetworkClient(
+                args.host or DEFAULT_HOST,
+                args.port or DEFAULT_PORT,
+                args.name,
+                role,
+                args.room_token,
+            )
             GameApp(screen, clock, network).run()
         pygame.quit()
     else:

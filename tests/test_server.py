@@ -17,7 +17,7 @@ class FakeJsonSocket:
         self.messages.append(message)
 
 
-def _server(monkeypatch, tmp_path, min_players: int = 2) -> Server:
+def _server(monkeypatch, tmp_path, min_players: int = 2, room_token: str = "") -> Server:
     config = Config(
         min_players=min_players,
         max_players=4,
@@ -25,9 +25,49 @@ def _server(monkeypatch, tmp_path, min_players: int = 2) -> Server:
         server_tick_rate=100,
         state_broadcast_rate=100,
         replay_record_rate=100,
+        room_token=room_token,
     )
     monkeypatch.setattr(server_module, "load_config", lambda: config)
     return Server("127.0.0.1", 0, 30)
+
+
+def test_room_token_accepts_matching_client(monkeypatch, tmp_path) -> None:
+    server = _server(monkeypatch, tmp_path, min_players=3, room_token="shared-secret")
+    server_side, client_side = socket.socketpair()
+    peer = JsonSocket(client_side)
+    thread = threading.Thread(
+        target=server._handle_client,
+        args=(server_side, ("local", 0)),
+        daemon=True,
+    )
+    thread.start()
+    try:
+        peer.send({"type": "hello", "name": "P1", "role": "player", "token": "shared-secret"})
+        assert peer.receive(timeout=1.0)["type"] == "welcome"
+        assert len(server.connections) == 1
+    finally:
+        client_side.close()
+        thread.join(timeout=1.0)
+
+
+def test_room_token_rejects_mismatched_client(monkeypatch, tmp_path) -> None:
+    server = _server(monkeypatch, tmp_path, room_token="shared-secret")
+    server_side, client_side = socket.socketpair()
+    peer = JsonSocket(client_side)
+    thread = threading.Thread(
+        target=server._handle_client,
+        args=(server_side, ("local", 0)),
+        daemon=True,
+    )
+    thread.start()
+    try:
+        peer.send({"type": "hello", "name": "P1", "role": "player", "token": "wrong-secret"})
+        assert peer.receive(timeout=1.0) == {"type": "error", "error": "invalid room token"}
+        thread.join(timeout=1.0)
+        assert not server.connections
+    finally:
+        client_side.close()
+        thread.join(timeout=1.0)
 
 
 def _connection(role: str, player_id: int | None = None) -> Connection:

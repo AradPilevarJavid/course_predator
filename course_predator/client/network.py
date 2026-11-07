@@ -62,6 +62,8 @@ class NetworkClient:
         self.status = "Connecting..."
         self.conn_state = ConnState.CONNECTING
         self.last_message_at = time.monotonic()
+        self.socket_lock = threading.Lock()
+        self.socket: socket.socket | None = None
         self.thread = threading.Thread(target=self._run, daemon=True)
 
     def start(self) -> None:
@@ -71,6 +73,11 @@ class NetworkClient:
         self.send({"type": "quit"})
         self.running.clear()
         if self.thread.is_alive():
+            self.thread.join(timeout=0.5)
+        if self.thread.is_alive():
+            with self.socket_lock:
+                if self.socket is not None:
+                    self.socket.close()
             self.thread.join(timeout=0.5)
 
     def send(self, message: JsonMessage) -> None:
@@ -104,6 +111,8 @@ class NetworkClient:
     def _run(self) -> None:
         try:
             with socket.create_connection((self.host, self.port), timeout=8.0) as sock:
+                with self.socket_lock:
+                    self.socket = sock
                 json_socket = JsonSocket(sock)
                 hello = {"type": "hello", "name": self.name, "role": self.role}
                 if self.room_token:
@@ -128,6 +137,8 @@ class NetworkClient:
             self._set_status(f"Network error: {exc}", ConnState.DISCONNECTED)
             self.log_queue.put((logging.WARNING, f"Network error: {exc}"))
         finally:
+            with self.socket_lock:
+                self.socket = None
             self._disconnect_if_needed()
 
     def _flush_outbox(self, json_socket: JsonSocket) -> bool:
