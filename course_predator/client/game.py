@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+
 import pygame
 
 from ..constants import CANVAS_HEIGHT, WINDOW_WIDTH
@@ -75,18 +76,21 @@ class GameApp:
         role: str,
         now: float,
     ) -> None:
-        if event.type == pygame.QUIT:
-            self.running = False
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+        if event.type == pygame.QUIT or event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self.running = False
         elif event.type == pygame.MOUSEMOTION and role != "spectator" and player_id:
             if self.cursor.calibrating:
                 self.cursor.handle_calibration_event(event, now)
             else:
                 self.cursor.move_from_event(event, own_state, now)
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and role != "spectator" and player_id:
-            if not self.cursor.calibrating:
-                self.client.send_click(self.cursor.x, self.cursor.y)
+        elif (
+            event.type == pygame.MOUSEBUTTONDOWN
+            and event.button == 1
+            and role != "spectator"
+            and player_id
+            and not self.cursor.calibrating
+        ):
+            self.client.send_click(self.cursor.x, self.cursor.y)
 
     def _own_state(self, state: GameState | None, player_id: int | None) -> PlayerState:
         if not state or player_id is None:

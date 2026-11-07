@@ -19,7 +19,7 @@ from .constants import (
     MIN_DURATION,
 )
 from .game import Game
-from .protocol import JsonSocket
+from .protocol import JsonSocket, validate_message
 from .replay import ReplayRecorder
 
 logger = logging.getLogger(__name__)
@@ -36,11 +36,12 @@ class Connection:
 
 
 class Server:
-    def __init__(self, host: str, port: int, duration: int) -> None:
+    def __init__(self, host: str, port: int, duration: int, room_token: str | None = None) -> None:
         self.config = load_config()
         self.host = host
         self.port = port
         self.duration = max(MIN_DURATION, min(MAX_DURATION, duration))
+        self.room_token = self.config.room_token if room_token is None else room_token
         self.game = Game(self.duration, self.config.min_players)
         self.connections: list[Connection] = []
         self.connection_lock = threading.RLock()
@@ -68,7 +69,7 @@ class Server:
                 while not self.shutdown_event.is_set():
                     try:
                         client_socket, address = server_socket.accept()
-                    except socket.timeout:
+                    except TimeoutError:
                         continue
                     threading.Thread(
                         target=self._handle_client,
@@ -81,12 +82,17 @@ class Server:
                 self.shutdown_event.set()
 
     def _handle_client(self, sock: socket.socket, address: tuple[str, int]) -> None:
+        sock.settimeout(10.0)
         json_socket = JsonSocket(sock)
         connection: Connection | None = None
         try:
             hello = json_socket.receive(timeout=10.0)
-            if not hello or hello.get("type") != "hello":
+            if not hello:
                 raise ConnectionError("client did not send hello")
+            validate_message(hello, hello=True)
+            if self.room_token and hello.get("token") != self.room_token:
+                json_socket.send({"type": "error", "error": "invalid room token"})
+                raise ConnectionError("invalid room token")
 
             connection = self._register_connection(json_socket, address, hello)
             json_socket.send(self._welcome_message(connection))
@@ -96,8 +102,11 @@ class Server:
                 message = json_socket.receive(timeout=1.0)
                 if message is None:
                     continue
+                validate_message(message)
                 self._process_message(connection, message)
-        except (ConnectionError, OSError, ValueError) as exc:
+        except (TypeError, ValueError, UnicodeError) as exc:
+            logger.warning("Rejected malformed message from %s: %s", address, exc)
+        except (ConnectionError, OSError) as exc:
             logger.info("Connection %s closed: %s", address, exc)
         finally:
             if connection is not None:
@@ -151,15 +160,15 @@ class Server:
         message_type = message.get("type")
         now = time.monotonic()
         if message_type == "click" and connection.role == "player" and connection.player_id:
-            x = float(message.get("x", 0.0))
-            y = float(message.get("y", 0.0))
+            x = float(message["x"])
+            y = float(message["y"])
             with self.game.lock:
                 event = self.game.handle_click(connection.player_id, x, y, now)
             connection.json_socket.send({"type": "ack", "event": event})
             self._broadcast_state(force=True)
         elif message_type == "mouse" and connection.role == "player" and connection.player_id:
-            x = float(message.get("x", 0.0))
-            y = float(message.get("y", 0.0))
+            x = float(message["x"])
+            y = float(message["y"])
             with self.game.lock:
                 self.game.update_mouse(connection.player_id, x, y)
         elif message_type == "quit":
@@ -167,7 +176,7 @@ class Server:
         elif message_type == "ping":
             connection.json_socket.send({"type": "pong"})
 
-    def _remove_connection(self, connection: Connection) -> None:
+    def _remove_connection(self, connection: Connection, *, broadcast: bool = True) -> None:
         with self.connection_lock, self.game.lock:
             if connection in self.connections:
                 self.connections.remove(connection)
@@ -183,7 +192,8 @@ class Server:
                 and not any(c.role == "player" and c.alive for c in self.connections)
             ):
                 self._shutdown_after_replay.set()
-            self._broadcast_lobby()
+            if broadcast:
+                self._broadcast_lobby()
 
     def _game_loop(self) -> None:
         tick_interval = 1.0 / self.config.server_tick_rate
@@ -201,9 +211,7 @@ class Server:
                     self.recorder.record(now, self.game.to_state(now, None, spectator=True))
                     self.game.replay_file = self.recorder.save(self.duration, self.game.winner_id)
                     self._saved_replay = True
-                should_shutdown = (
-                    self._shutdown_after_replay.is_set() and self.game.ended and self._saved_replay
-                )
+                should_shutdown = self._shutdown_after_replay.is_set() and self.game.ended and self._saved_replay
 
             self._broadcast_state()
             if should_shutdown:
@@ -229,6 +237,7 @@ class Server:
             return
         self._last_broadcast = now
         with self.connection_lock, self.game.lock:
+            failed_connections: list[Connection] = []
             for connection in list(self.connections):
                 if not connection.alive:
                     continue
@@ -239,17 +248,26 @@ class Server:
                         spectator=connection.role == "spectator",
                     )
                     connection.json_socket.send(state)
-                except OSError:
-                    connection.alive = False
+                except (OSError, ValueError) as exc:
+                    logger.info("Removing connection %s after state send failure: %s", connection.address, exc)
+                    failed_connections.append(connection)
+            for connection in failed_connections:
+                self._remove_connection(connection, broadcast=False)
+            if failed_connections:
+                self._broadcast_lobby()
 
     def _send_all(self, message: dict[str, Any]) -> None:
+        failed_connections: list[Connection] = []
         for connection in list(self.connections):
             if not connection.alive:
                 continue
             try:
                 connection.json_socket.send(message)
-            except OSError:
-                connection.alive = False
+            except (OSError, ValueError) as exc:
+                logger.info("Removing connection %s after send failure: %s", connection.address, exc)
+                failed_connections.append(connection)
+        for connection in failed_connections:
+            self._remove_connection(connection, broadcast=False)
 
 
 def parse_args() -> argparse.Namespace:
@@ -259,13 +277,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=config.port or DEFAULT_PORT)
     parser.add_argument("--duration", type=int, default=config.duration or DEFAULT_DURATION)
     parser.add_argument("--log-level", default=config.log_level)
+    parser.add_argument("--room-token", default=config.room_token)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     configure_logging(args.log_level)
-    Server(args.host, args.port, args.duration).run()
+    Server(args.host, args.port, args.duration, args.room_token).run()
 
 
 if __name__ == "__main__":

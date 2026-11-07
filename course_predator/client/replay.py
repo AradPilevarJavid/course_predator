@@ -1,4 +1,5 @@
 import time
+
 import pygame
 
 from ..constants import WINDOW_WIDTH
@@ -29,9 +30,11 @@ class ReplayApp:
             end = time.monotonic()
             elapsed = end - start
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                elif event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                if (
+                    event.type == pygame.QUIT
+                    or event.type == pygame.KEYDOWN
+                    and event.key in (pygame.K_ESCAPE, pygame.K_RETURN)
+                ):
                     self.running = False
             while frame_index + 1 < len(self.frames) and self.frames[frame_index + 1]["t"] <= elapsed:
                 frame_index += 1
