@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import queue
 import socket
 import threading
@@ -11,7 +12,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, cast
 
-from ..protocol import JsonSocket
+from ..protocol import JsonSocket, validate_message
 from ..types import GameState, JsonMessage, LobbyState
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ class ConnState(Enum):
     ENDED = 5
 
 
-@dataclass(frozen=True) # frozen = immutable
+@dataclass(frozen=True)  # frozen = immutable
 class NetworkSnapshot:
     state: GameState | None
     lobby: LobbyState | None
@@ -42,24 +43,27 @@ class NetworkSnapshot:
 
 class NetworkClient:
     """Owns the logic of the network side of the client.    >Threading<
-        includes the socket in a background thread and shares state with the GUI."""
+    includes the socket in a background thread and shares state with the GUI."""
 
-    def __init__(self, host: str, port: int, name: str, role: str) -> None:
+    def __init__(self, host: str, port: int, name: str, role: str, room_token: str | None = None) -> None:
         self.host = host
         self.port = port
         self.name = name
         self.role = role
+        self.room_token = os.getenv("COURSE_PREDATOR_ROOM_TOKEN", "") if room_token is None else room_token
         self.player_id: int | None = None
         self.running = threading.Event()
         self.running.set()
         self.outbox: queue.Queue[JsonMessage] = queue.Queue()
         self.log_queue: queue.Queue[tuple[int, str]] = queue.Queue()
-        self.state_lock = threading.RLock() # locks the block of code that the other thread might also be modifying.
+        self.state_lock = threading.RLock()  # locks the block of code that the other thread might also be modifying.
         self.latest_state: GameState | None = None
         self.latest_lobby: LobbyState | None = None
         self.status = "Connecting..."
         self.conn_state = ConnState.CONNECTING
         self.last_message_at = time.monotonic()
+        self.socket_lock = threading.Lock()
+        self.socket: socket.socket | None = None
         self.thread = threading.Thread(target=self._run, daemon=True)
 
     def start(self) -> None:
@@ -70,16 +74,23 @@ class NetworkClient:
         self.running.clear()
         if self.thread.is_alive():
             self.thread.join(timeout=0.5)
+        if self.thread.is_alive():
+            with self.socket_lock:
+                if self.socket is not None:
+                    self.socket.close()
+            self.thread.join(timeout=0.5)
 
     def send(self, message: JsonMessage) -> None:
         self.outbox.put(message)
 
     def snapshot(self) -> NetworkSnapshot:
         with self.state_lock:
-            if self.conn_state not in {ConnState.DISCONNECTED, ConnState.CONNECTING}:
-                if time.monotonic() - self.last_message_at > CONNECTION_LOST_SECONDS:
-                    self.conn_state = ConnState.DISCONNECTED
-                    self.status = "Connection lost"
+            if (
+                self.conn_state not in {ConnState.DISCONNECTED, ConnState.CONNECTING}
+                and time.monotonic() - self.last_message_at > CONNECTION_LOST_SECONDS
+            ):
+                self.conn_state = ConnState.DISCONNECTED
+                self.status = "Connection lost"
             return NetworkSnapshot(
                 self.latest_state,
                 self.latest_lobby,
@@ -100,8 +111,13 @@ class NetworkClient:
     def _run(self) -> None:
         try:
             with socket.create_connection((self.host, self.port), timeout=8.0) as sock:
+                with self.socket_lock:
+                    self.socket = sock
                 json_socket = JsonSocket(sock)
-                json_socket.send({"type": "hello", "name": self.name, "role": self.role})
+                hello = {"type": "hello", "name": self.name, "role": self.role}
+                if self.room_token:
+                    hello["token"] = self.room_token
+                json_socket.send(hello)
                 self._set_status("Connected", ConnState.WAITING_LOBBY)
                 last_keepalive = time.monotonic()
                 while self.running.is_set() or not self.outbox.empty():
@@ -114,13 +130,15 @@ class NetworkClient:
                     if not message:
                         continue
                     self._handle_message(message)
-        except ConnectionError as exc:
+        except (ConnectionError, ValueError, TypeError, UnicodeError) as exc:
             self._set_status(f"Disconnected: {exc}", ConnState.DISCONNECTED)
-            self.log_queue.put((logging.INFO, f"Disconnected: {exc}"))
+            self.log_queue.put((logging.WARNING, f"Protocol error/disconnect: {exc}"))
         except OSError as exc:
             self._set_status(f"Network error: {exc}", ConnState.DISCONNECTED)
             self.log_queue.put((logging.WARNING, f"Network error: {exc}"))
         finally:
+            with self.socket_lock:
+                self.socket = None
             self._disconnect_if_needed()
 
     def _flush_outbox(self, json_socket: JsonSocket) -> bool:
@@ -131,6 +149,10 @@ class NetworkClient:
                 sent_message = True
             except queue.Empty:
                 return sent_message
+            except OSError as exc:
+                self.log_queue.put((logging.WARNING, f"Send failed: {exc}"))
+                self.running.clear()
+                raise ConnectionError(f"send failed: {exc}") from exc
 
     def _set_status(self, status: str, conn_state: ConnState) -> None:
         with self.state_lock:
@@ -144,6 +166,7 @@ class NetworkClient:
                 self.conn_state = ConnState.DISCONNECTED
 
     def _handle_message(self, message: dict[str, Any]) -> None:
+        validate_message(message)
         with self.state_lock:
             self.last_message_at = time.monotonic()
             message_type = message.get("type")
@@ -169,10 +192,13 @@ class NetworkClient:
                     self.conn_state = ConnState.PLAYING
                 elif self.role == "spectator":
                     self.conn_state = ConnState.SPECTATING
-            elif message_type == "pong":
+            elif message_type == "pong" or message_type == "ack":
                 pass
-            elif message_type == "ack":
-                pass
+            elif message_type == "error":
+                self.status = str(message.get("error") or "Server rejected request")
+                self.log_queue.put((logging.WARNING, self.status))
+            else:
+                self.log_queue.put((logging.WARNING, f"Unknown server message type: {message_type}"))
 
 
 class GameClient:

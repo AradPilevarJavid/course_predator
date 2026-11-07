@@ -19,7 +19,7 @@ class Shape:
     spawn_time: float
     kind: str = "normal"
 
-    @property # the result (function output) is the property of the function.
+    @property  # the result (function output) is the property of the function.
     def expires_at(self) -> float:
         return self.spawn_time + self.lifetime
 
@@ -27,7 +27,7 @@ class Shape:
         return now >= self.expires_at
 
     def contains(self, x: float, y: float) -> bool:
-    # Originally used sqrt; switched to hypot to make it cooler.
+        # Originally used sqrt; switched to hypot to make it cooler.
         return hypot(self.x - x, self.y - y) <= self.radius
 
     def to_dict(self, now: float) -> ShapeDict:
@@ -131,7 +131,7 @@ class Player:
         return self.stamina <= 10.0
 
     def change_stamina(self, amount: float) -> None:
-        # self.stamina = max(0.0, min(100.0, self.stamina + amount)) 
+        # self.stamina = max(0.0, min(100.0, self.stamina + amount))
         self.stamina = clamp(self.stamina + amount, 0.0, 100.0)
 
     def change_stress(self, amount: float) -> None:

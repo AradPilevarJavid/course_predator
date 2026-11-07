@@ -6,6 +6,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
+
 import pygame
 
 from ..config import load_config
@@ -29,7 +30,7 @@ class LobbyApp:
         self.small = pygame.font.SysFont("arial", 17)
         self.title_font = pygame.font.SysFont("arial", 54, bold=True)
 
-        ww, wh = WINDOW_WIDTH, WINDOW_HEIGHT
+        ww = WINDOW_WIDTH
         margin = 80
         input_y = 185
         input_h = 44
@@ -67,7 +68,7 @@ class LobbyApp:
         btn_row_x = (ww - btn_row_width) // 2
 
         self.buttons = {
-            "host": Button("Host Game", pygame.Rect(btn_row_x, btn_y, btn_host_w, btn_h), (51, 137+90, 255)),
+            "host": Button("Host Game", pygame.Rect(btn_row_x, btn_y, btn_host_w, btn_h), (51, 137 + 90, 255)),
             "join": Button(
                 "Join Game",
                 pygame.Rect(btn_row_x + btn_host_w + btn_gap, btn_y, btn_join_w, btn_h),
@@ -78,7 +79,7 @@ class LobbyApp:
                 pygame.Rect(btn_row_x + btn_host_w + btn_join_w + 2 * btn_gap, btn_y, btn_spec_w, btn_h),
                 (151, 104, 255),
             ),
-            "replay": Button("Watch Replay", pygame.Rect((ww - 220) // 2, 375+330, 220, 50), (255, 156, 84)),
+            "replay": Button("Watch Replay", pygame.Rect((ww - 220) // 2, 375 + 330, 220, 50), (255, 156, 84)),
         }
 
         self.error = ""
@@ -122,7 +123,7 @@ class LobbyApp:
         instr_y = int(WINDOW_HEIGHT * 0.78)  # ~485 on 620+200
 
         #                         < Instructions used to live here :) >
-       
+
         # for index, line in enumerate(instructions):
         #     surface = self.small.render(line, True, (180, 193, 212))
         #     self.screen.blit(surface, (instr_x, instr_y + index * 26))
@@ -166,7 +167,7 @@ class LobbyApp:
         except ValueError:
             self.error = "Port must be a number."
             return
-        client = NetworkClient(host, port, name, role)
+        client = NetworkClient(host, port, name, role, self.config.room_token)
         GameApp(self.screen, self.clock, client).run()
         pygame.mouse.set_visible(True)
         pygame.display.set_caption("Course Predator Lobby")

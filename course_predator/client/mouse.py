@@ -20,7 +20,6 @@ from ..constants import (
 from ..protocol import clamp
 from ..types import PlayerState
 
-
 CALIBRATION_FILE = Path.home() / ".course_predator_mouse.json"
 CALIBRATION_SECONDS = 1.5
 MIN_CALIBRATION_SAMPLES = 20

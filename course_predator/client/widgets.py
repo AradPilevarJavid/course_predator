@@ -45,10 +45,11 @@ class Button:
         self.hover = 0.0
 
     def is_clicked(self, event: pygame.event.Event) -> bool:
-        return (event.type == pygame.MOUSEBUTTONDOWN and event.button == 1
-        and self.rect.collidepoint(event.pos))
+        return event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.rect.collidepoint(event.pos)
 
-    def draw(self, surface: pygame.Surface, font: pygame.font.Font, mouse_pos: tuple[int, int], seconds_per_loop: float) -> None:
+    def draw(
+        self, surface: pygame.Surface, font: pygame.font.Font, mouse_pos: tuple[int, int], seconds_per_loop: float
+    ) -> None:
         target = 1.0 if self.rect.collidepoint(mouse_pos) else 0.0
         self.hover += (target - self.hover) * min(1.0, seconds_per_loop * 12.0)
         color = tuple(min(255, int(channel + 30 * self.hover)) for channel in self.color)

@@ -22,20 +22,20 @@ class Renderer:
         self.display_stress: dict[int, float] = {}
 
         self.object_images = {}
-        asset_dir = os.path.join(os.path.dirname(__file__), '../../assets')
+        asset_dir = os.path.join(os.path.dirname(__file__), "../../assets")
         image_map = {
-            'shield': 'shield.jpg',
-            'ice': 'ice.png',
-            'illusion': 'illusion.png',
-            'normal_positive': 'normal_positive.png',
-            'normal_negative': 'normal_negative.png',
+            "shield": "shield.jpg",
+            "ice": "ice.png",
+            "illusion": "illusion.png",
+            "normal_positive": "normal_positive.png",
+            "normal_negative": "normal_negative.png",
         }
         for kind, filename in image_map.items():
             path = os.path.join(asset_dir, filename)
             try:
                 img = pygame.image.load(path).convert_alpha()
                 self.object_images[kind] = img
-            except Exception:
+            except (OSError, pygame.error):
                 self.object_images[kind] = None
 
     def draw_background(self) -> None:
@@ -191,18 +191,18 @@ class Renderer:
             radius = int(shape["radius"])
             kind = shape["kind"]
 
-            if kind == 'shield':
-                image_key = 'shield'
+            if kind == "shield":
+                image_key = "shield"
                 text = ""
-            elif kind == 'ice':
-                image_key = 'ice'
+            elif kind == "ice":
+                image_key = "ice"
                 text = ""
-            elif kind == 'illusion':
-                image_key = 'illusion'
+            elif kind == "illusion":
+                image_key = "illusion"
                 text = score_text(float(shape["points"]))
             else:
                 points = int(shape["points"])
-                image_key = 'normal_positive' if points > 0 else 'normal_negative'
+                image_key = "normal_positive" if points > 0 else "normal_negative"
                 text = score_text(float(points)) if points > 0 else str(abs(points))
 
             img = self.object_images.get(image_key)
@@ -211,7 +211,7 @@ class Renderer:
                 img_rect = scaled_img.get_rect(center=(x, y))
                 self.screen.blit(scaled_img, img_rect)
             else:
-                if kind == 'shield':
+                if kind == "shield":
                     color = (83, 226, 169)
                     pygame.draw.polygon(
                         self.screen,
@@ -225,13 +225,14 @@ class Renderer:
                             (x - radius, y - radius // 3),
                         ],
                     )
-                elif kind == 'ice':
+                elif kind == "ice":
                     color = (100, 205, 255)
                     points = [
-                        (x + math.cos(i * math.pi / 3) * radius, y + math.sin(i * math.pi / 3) * radius) for i in range(6)
+                        (x + math.cos(i * math.pi / 3) * radius, y + math.sin(i * math.pi / 3) * radius)
+                        for i in range(6)
                     ]
                     pygame.draw.polygon(self.screen, color, points)
-                elif kind == 'illusion':
+                elif kind == "illusion":
                     color = (184, 116, 255)
                     pygame.draw.circle(self.screen, color, (x, y), radius, 3)
                 else:
@@ -242,7 +243,7 @@ class Renderer:
             text_surface = self.font.render(text, True, (255, 255, 255))
             if kind == "illusion":
                 text_surface = self.font.render(text, True, (218, 190, 255))
-            self.screen.blit(text_surface, text_surface.get_rect(center=(x+6, y)))
+            self.screen.blit(text_surface, text_surface.get_rect(center=(x + 6, y)))
             ttl = float(shape.get("ttl", 0.0))
             lifetime = max(0.1, float(shape.get("lifetime", 1.0)))
             arc_rect = pygame.Rect(x - radius - 5, y - radius - 5, radius * 2 + 10, radius * 2 + 10)

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import socket
 import threading
 
 from course_predator import server as server_module
 from course_predator.config import Config
+from course_predator.protocol import JsonSocket
 from course_predator.server import Connection, Server
 
 
@@ -15,7 +17,7 @@ class FakeJsonSocket:
         self.messages.append(message)
 
 
-def _server(monkeypatch, tmp_path, min_players: int = 2) -> Server:
+def _server(monkeypatch, tmp_path, min_players: int = 2, room_token: str = "") -> Server:
     config = Config(
         min_players=min_players,
         max_players=4,
@@ -23,9 +25,49 @@ def _server(monkeypatch, tmp_path, min_players: int = 2) -> Server:
         server_tick_rate=100,
         state_broadcast_rate=100,
         replay_record_rate=100,
+        room_token=room_token,
     )
     monkeypatch.setattr(server_module, "load_config", lambda: config)
     return Server("127.0.0.1", 0, 30)
+
+
+def test_room_token_accepts_matching_client(monkeypatch, tmp_path) -> None:
+    server = _server(monkeypatch, tmp_path, min_players=3, room_token="shared-secret")
+    server_side, client_side = socket.socketpair()
+    peer = JsonSocket(client_side)
+    thread = threading.Thread(
+        target=server._handle_client,
+        args=(server_side, ("local", 0)),
+        daemon=True,
+    )
+    thread.start()
+    try:
+        peer.send({"type": "hello", "name": "P1", "role": "player", "token": "shared-secret"})
+        assert peer.receive(timeout=1.0)["type"] == "welcome"
+        assert len(server.connections) == 1
+    finally:
+        client_side.close()
+        thread.join(timeout=1.0)
+
+
+def test_room_token_rejects_mismatched_client(monkeypatch, tmp_path) -> None:
+    server = _server(monkeypatch, tmp_path, room_token="shared-secret")
+    server_side, client_side = socket.socketpair()
+    peer = JsonSocket(client_side)
+    thread = threading.Thread(
+        target=server._handle_client,
+        args=(server_side, ("local", 0)),
+        daemon=True,
+    )
+    thread.start()
+    try:
+        peer.send({"type": "hello", "name": "P1", "role": "player", "token": "wrong-secret"})
+        assert peer.receive(timeout=1.0) == {"type": "error", "error": "invalid room token"}
+        thread.join(timeout=1.0)
+        assert not server.connections
+    finally:
+        client_side.close()
+        thread.join(timeout=1.0)
 
 
 def _connection(role: str, player_id: int | None = None) -> Connection:
@@ -62,7 +104,7 @@ def test_all_disconnected_requests_shutdown_after_replay(monkeypatch, tmp_path) 
     server._remove_connection(second)
 
     assert server.game.ended
-    assert server.game.end_reason == "All players disconnected"
+    assert server.game.end_reason == "Opponent disconnected"
     assert not server.shutdown_event.is_set()
     assert server._shutdown_after_replay.is_set()
 
@@ -83,7 +125,8 @@ def test_remaining_player_prevents_shutdown(monkeypatch, tmp_path) -> None:
 
     server._remove_connection(first)
 
-    assert server.game.active
+    assert server.game.ended
+    assert server.game.winner_id == 2
     assert not server._shutdown_after_replay.is_set()
     assert not server.shutdown_event.is_set()
 
@@ -114,3 +157,39 @@ def test_waiting_player_disconnect_keeps_server_available(monkeypatch, tmp_path)
     assert not server.game.ended
     assert not server._shutdown_after_replay.is_set()
     assert not server.shutdown_event.is_set()
+
+
+def test_two_socket_clients_join_same_match(monkeypatch, tmp_path) -> None:
+    server = _server(monkeypatch, tmp_path)
+    client_sockets: list[socket.socket] = []
+    threads: list[threading.Thread] = []
+    peers: list[JsonSocket] = []
+    for name in ("P1", "P2"):
+        server_side, client_side = socket.socketpair()
+        client_sockets.append(client_side)
+        peers.append(JsonSocket(client_side))
+        thread = threading.Thread(
+            target=server._handle_client,
+            args=(server_side, ("local", 0)),
+            daemon=True,
+        )
+        threads.append(thread)
+        thread.start()
+        peers[-1].send({"type": "hello", "name": name, "role": "player"})
+
+    welcomes = []
+    for peer in peers:
+        for _ in range(3):
+            message = peer.receive(timeout=1.0)
+            if message and message.get("type") == "welcome":
+                welcomes.append(message)
+                break
+
+    assert sorted(message["player_id"] for message in welcomes) == [1, 2]
+    assert server.game.active
+
+    for client_socket in client_sockets:
+        client_socket.close()
+    for thread in threads:
+        thread.join(timeout=1.0)
+    assert server.game.ended

@@ -18,7 +18,6 @@ from .constants import (
     STATE_BROADCAST_RATE,
 )
 
-
 CONFIG_PATH_ENV = "COURSE_PREDATOR_CONFIG"
 
 
@@ -34,6 +33,7 @@ class Config:
     state_broadcast_rate: int = STATE_BROADCAST_RATE
     replay_record_rate: int = REPLAY_RECORD_RATE
     log_level: str = "INFO"
+    room_token: str = ""
 
 
 def _read_config_file(path: Path) -> dict[str, Any]:
@@ -41,7 +41,7 @@ def _read_config_file(path: Path) -> dict[str, Any]:
         return {}
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
-        raise ValueError(f"{path} must contain a JSON object")
+        raise TypeError(f"{path} must contain a JSON object")
     return payload
 
 
@@ -83,6 +83,7 @@ def load_config(path: str | Path | None = None) -> Config:
             REPLAY_RECORD_RATE,
         ),
         log_level=_get_str(values, "log_level", "COURSE_PREDATOR_LOG_LEVEL", "INFO"),
+        room_token=_get_str(values, "room_token", "COURSE_PREDATOR_ROOM_TOKEN", ""),
     )
 
 

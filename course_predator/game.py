@@ -1,6 +1,5 @@
 """Authoritative server-side game rules and state transitions."""
 
-import math
 import random
 import threading
 
@@ -10,7 +9,6 @@ from .constants import (
     ICE_SECONDS,
     ILLUSION_RADIUS,
     MAX_REAL_SHAPES,
-    NEGATIVE_VALUES,
     NORMAL_RADIUS,
     NORMAL_VALUES,
     POSITIVE_LOW_VALUES,
@@ -67,7 +65,9 @@ class Game:
         player.connected = False
         if self.active and not self.ended:
             connected_players = [p for p in self.players.values() if p.connected]
-            if not connected_players:
+            if len(connected_players) == 1:
+                self._finish(now, "Opponent disconnected", connected_players[0].player_id)
+            elif not connected_players:
                 self._finish(now, "All players disconnected", None)
 
     def can_start(self) -> bool:
@@ -341,7 +341,7 @@ class Game:
         for player in self.players.values():
             player.hidden_shape_ids.difference_update(expired_real)
 
-        for player_id, shapes in self.illusions.items():
+        for shapes in self.illusions.values():
             expired = [shape_id for shape_id, shape in shapes.items() if shape.is_expired(now)]
             for shape_id in expired:
                 del shapes[shape_id]

@@ -22,6 +22,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--name", default="Student")
     parser.add_argument("--spectator", action="store_true")
     parser.add_argument("--replay", default=None)
+    parser.add_argument("--room-token", default=config.room_token)
     parser.add_argument("--log-level", default=config.log_level)
     return parser.parse_args()
 
@@ -37,7 +38,13 @@ def main() -> None:
             ReplayApp(screen, clock, args.replay).run()
         else:
             role = "spectator" if args.spectator else "player"
-            network = NetworkClient(args.host or DEFAULT_HOST, args.port or DEFAULT_PORT, args.name, role)
+            network = NetworkClient(
+                args.host or DEFAULT_HOST,
+                args.port or DEFAULT_PORT,
+                args.name,
+                role,
+                args.room_token,
+            )
             GameApp(screen, clock, network).run()
         pygame.quit()
     else:
