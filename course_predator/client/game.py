@@ -6,7 +6,7 @@ import time
 
 import pygame
 
-from ..constants import CANVAS_HEIGHT, WINDOW_WIDTH
+from ..constants import CANVAS_HEIGHT, CANVAS_WIDTH
 from ..types import GameState, PlayerState
 from .mouse import MouseController
 from .network import ConnState, GameClient, NetworkClient
@@ -41,6 +41,10 @@ class GameApp:
                     self.cursor.ensure_calibration_started(now)
                 self.cursor.tick_calibration(now)
                 for event in pygame.event.get():
+                    if event.type == pygame.VIDEORESIZE:
+                        self.screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
+                        self.renderer.resize(self.screen)
+                        continue
                     self._handle_event(event, own_state, snapshot.player_id, snapshot.role, now)
                 if snapshot.role != "spectator" and snapshot.player_id and snapshot.conn_state == ConnState.PLAYING:
                     self.cursor.update_jumps(float(own_state.get("stress", 0.0)), now)
@@ -82,7 +86,7 @@ class GameApp:
             if self.cursor.calibrating:
                 self.cursor.handle_calibration_event(event, now)
             else:
-                self.cursor.move_from_event(event, own_state, now)
+                self.cursor.move_from_event(event, own_state, now, self.renderer.viewport.scale)
         elif (
             event.type == pygame.MOUSEBUTTONDOWN
             and event.button == 1
@@ -99,8 +103,9 @@ class GameApp:
 
     def _draw_connecting(self, lobby: dict[str, object] | None, status: str) -> None:
         self.screen.fill((10, 13, 21))
+        width, height = self.screen.get_size()
         title = self.renderer.big.render("Connecting to course server...", True, (245, 248, 255))
-        self.screen.blit(title, title.get_rect(center=(WINDOW_WIDTH // 2, 260)))
+        self.screen.blit(title, title.get_rect(center=(width // 2, height // 2 - 40)))
         if lobby:
             players = lobby.get("players", [])
             player_names = ", ".join(players) if isinstance(players, list) else "none"
@@ -108,7 +113,7 @@ class GameApp:
         else:
             text = status
         surface = self.renderer.font.render(text, True, (180, 195, 216))
-        self.screen.blit(surface, surface.get_rect(center=(WINDOW_WIDTH // 2, 330)))
+        self.screen.blit(surface, surface.get_rect(center=(width // 2, height // 2 + 30)))
 
 
 def _default_own_state() -> PlayerState:
@@ -121,5 +126,5 @@ def _default_own_state() -> PlayerState:
         "shield": 0.0,
         "frozen": 0.0,
         "connected": False,
-        "mouse": [WINDOW_WIDTH / 2, CANVAS_HEIGHT / 2],
+        "mouse": [CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2],
     }

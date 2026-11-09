@@ -7,11 +7,12 @@ import argparse
 import pygame
 
 from ..config import configure_logging, load_config
-from ..constants import DEFAULT_HOST, DEFAULT_PORT, WINDOW_HEIGHT, WINDOW_WIDTH
+from ..constants import DEFAULT_HOST, DEFAULT_PORT
 from .game import GameApp
 from .lobby import LobbyApp
 from .network import NetworkClient
 from .replay import ReplayApp
+from .viewport import initial_window_size
 
 
 def parse_args() -> argparse.Namespace:
@@ -32,7 +33,7 @@ def main() -> None:
     configure_logging(args.log_level)
     if args.host or args.replay:
         pygame.init()
-        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        screen = pygame.display.set_mode(initial_window_size(), pygame.RESIZABLE)
         clock = pygame.time.Clock()
         if args.replay:
             ReplayApp(screen, clock, args.replay).run()

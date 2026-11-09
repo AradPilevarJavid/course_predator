@@ -2,7 +2,6 @@ import time
 
 import pygame
 
-from ..constants import WINDOW_WIDTH
 from ..replay import load_replay
 from .mouse import MouseController
 from .renderer import Renderer
@@ -36,12 +35,15 @@ class ReplayApp:
                     and event.key in (pygame.K_ESCAPE, pygame.K_RETURN)
                 ):
                     self.running = False
+                elif event.type == pygame.VIDEORESIZE:
+                    self.screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
+                    self.renderer.resize(self.screen)
             while frame_index + 1 < len(self.frames) and self.frames[frame_index + 1]["t"] <= elapsed:
                 frame_index += 1
             state = self.frames[frame_index]["state"]
             self.renderer.draw_state(state, None, "spectator", cursor, f"Replay {self.replay_path}", seconds_per_loop)
             note = self.renderer.small.render("Replay mode: Esc/Enter returns to lobby", True, (230, 236, 248))
-            self.screen.blit(note, (WINDOW_WIDTH - 310, 48))
+            self.screen.blit(note, note.get_rect(topright=(self.screen.get_width() - 24, 48)))
             pygame.display.flip()
             if frame_index >= len(self.frames) - 1 and elapsed > self.frames[-1]["t"] + 2.0:
                 self.running = False

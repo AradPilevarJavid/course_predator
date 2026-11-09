@@ -8,6 +8,7 @@ The first public release is a desktop Pygame game. It supports the existing spec
 
 - Authoritative TCP server with newline-delimited JSON messages.
 - Pygame lobby, match renderer, spectator mode, and replay viewer.
+- Resizable client windows with uniform arena scaling, letterboxing, and responsive HUD layouts.
 - Normal, shield, ice, and illusion shapes with stamina/stress mechanics.
 - Match replay files saved as JSON on the server.
 - Optional shared room token for a private public listener.
@@ -63,6 +64,8 @@ For a local host/client workflow, **Host Game** starts a local server process an
 **Do not use `127.0.0.1` or `localhost` for remote play.** Those addresses always mean "this computer", so each player would connect to their own machine instead of the VPS. The default is intentionally local for safe development; replace it with the server's reachable hostname or address.
 
 The default server port is `50007`. Choose a different port with `--port` and allow that exact TCP port through the VPS firewall.
+
+The client uses a fixed 1100×620 logical arena for every player. The window can be resized or maximized without changing the server's coordinate system: wide windows place the HUD beside the arena, while narrower windows stack it above the arena and letterbox unused space to preserve proportions.
 
 ## Optional room token
 

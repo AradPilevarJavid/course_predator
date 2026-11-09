@@ -90,7 +90,9 @@ class MouseController:
             return MOUSE_SLOWDOWN_LIGHT
         return 1.0
 
-    def move_from_event(self, event: pygame.event.Event, player_state: PlayerState, now: float) -> None:
+    def move_from_event(
+        self, event: pygame.event.Event, player_state: PlayerState, now: float, viewport_scale: float = 1.0
+    ) -> None:
         raw_dx, raw_dy = pygame.mouse.get_rel()
         if raw_dx == 0 and raw_dy == 0:
             raw_dx, raw_dy = getattr(event, "rel", (0, 0))
@@ -98,8 +100,10 @@ class MouseController:
         speed_factor = self.stress_speed_factor(stress)
         if float(player_state.get("frozen", 0.0)) > 0.0 or float(player_state.get("stamina", 100.0)) <= 10.0:
             speed_factor = 0.0
-        self.x = clamp(self.x + raw_dx * self.baseline_ratio * speed_factor, 0.0, float(CANVAS_WIDTH))
-        self.y = clamp(self.y + raw_dy * self.baseline_ratio * speed_factor, 0.0, float(CANVAS_HEIGHT))
+        logical_dx = raw_dx / max(viewport_scale, 0.01)
+        logical_dy = raw_dy / max(viewport_scale, 0.01)
+        self.x = clamp(self.x + logical_dx * self.baseline_ratio * speed_factor, 0.0, float(CANVAS_WIDTH))
+        self.y = clamp(self.y + logical_dy * self.baseline_ratio * speed_factor, 0.0, float(CANVAS_HEIGHT))
         if stress >= 51.0:
             self.trail.append((self.x, self.y, now))
             self.trail = [item for item in self.trail if now - item[2] < 0.45]
