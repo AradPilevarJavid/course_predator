@@ -4,6 +4,16 @@ Course Predator is a real-time course-registration reaction race for two players
 
 The first public release is a desktop Pygame game. It supports the existing spectator and 3–4 player code paths, but the supported release scenario is an online 1v1 match.
 
+
+## Gameplay Preview
+
+![Course Predator Demo](assets/course_predator_demo.gif)
+
+*A 25-second gameplay recording.*
+full game video is available in assets/
+
+
+
 ## Features
 
 - Authoritative TCP server with newline-delimited JSON messages.
