@@ -1,105 +1,137 @@
 # Course Predator
 
-Course Predator is a real-time course-registration reaction race for two players. Each player controls a cursor, clicks useful course shapes, manages stamina and stress, and tries to finish with the highest score. The Python server is authoritative: clients send input, while the server owns scoring, timing, visibility, disconnect handling, and the final result.
+A fast-paced 1v1 reaction game about the most stressful moment of every semester: **course registration**.
 
-The first public release is a desktop Pygame game. It supports the existing spectator and 3–4 player code paths, but the supported release scenario is an online 1v1 match.
+Two players race around the screen clicking shapes, managing stamina and stress, and trying to finish with the highest score before the timer runs out. Miss a shape and you lose points. Get too stressed and your cursor starts fighting you. Spend all your stamina and you go dark until it recovers.
 
-
-## Gameplay Preview
+The Python server is authoritative — clients only send input, while the server owns scoring, timing, visibility, and the final result. What you see is always what the server says happened.
 
 ![Course Predator Demo](assets/course_predator_demo.gif)
 
-*A 25-second gameplay recording.*
-full game video is available in assets/
+*A 25-second clip of a match. The full recording lives in [`assets/full_replay.mp4`](assets/full_replay.mp4).*
 
+## How it works
 
+Every match is a short sprint (60 seconds by default, configurable from 15 to 300). Shapes spawn constantly on the field, and you click them for points — but not every shape is what it looks like, and your own resources matter as much as your aim.
 
-## Features
+### Shapes
 
-- Authoritative TCP server with newline-delimited JSON messages.
-- Pygame lobby, match renderer, spectator mode, and replay viewer.
-- Normal, shield, ice, and illusion shapes with stamina/stress mechanics.
-- Match replay files saved as JSON on the server.
-- Optional shared room token for a private public listener.
-- Linux systemd deployment template and journal logging.
+| Shape | What it does |
+| --- | --- |
+| **Positive** (yellow) | Worth +1 to +6 points. Click it before it disappears. |
+| **Negative** (red) | Worth −1 to −3 points. Avoid these — or click them with a shield active to negate the penalty. |
+| **Shield** | Grants 5 seconds of protection. While shielded, negative shapes cost you nothing. |
+| **Ice** | Freezes the current leader for 3 seconds. A great way to buy yourself breathing room. |
+| **Illusion** | A fake shape that only *you* can see. Clicking it scores nothing but still drains stamina and adds stress. They spawn more often when your stress is high. |
 
-There is no browser build, account system, matchmaking, or hosted public server included in this repository. The `assets/` directory contains the game artwork used by the client; no separate screenshot or GIF is currently maintained.
+### Stamina and stress
 
-## Requirements
+These two bars are the heart of the game:
 
-- Python 3.11 or newer.
-- A desktop environment capable of running Pygame for each client.
-- Network access to the server's TCP port for remote play.
+- **Stamina** starts at 100. Every click costs 5. When you stop clicking for a moment, it regenerates on its own. Drop to 10 or below and you're **exhausted** — you can't click until it recovers, and the screen goes dark.
+- **High stamina is a superpower.** At 90+ stamina, positive shapes score double and negative shapes only half-punish you. Your stress also recovers faster.
+- **Stamina loss has a hidden cost.** Below 60, shapes start disappearing from *your* view only. At 10 or below, you're basically blind and helpless.
+- **Stress** builds up as you play. A little stress slows your cursor down. Past 51 it slows you further, makes your cursor jump around on its own, and starts spawning illusions. Keep it in check by clicking positive shapes with high stamina.
 
-## Installation
+### Controls
 
-Clone the repository, create a virtual environment, and install the project:
+- Move the mouse to aim your virtual cursor (there's a one-time calibration on first run — just move in a circle for a second).
+- **Left click** to grab a shape.
+- **Esc** to quit the match.
+
+The cursor is virtual and server-validated, so the server always decides what your click actually hit.
+
+## Quick start
+
+### Requirements
+
+- Python 3.11+
+- A desktop environment with a display (for the Pygame client)
+- Network access to the server's TCP port, if playing remotely
+
+### Install
 
 ```bash
+git clone https://github.com/AradPilevarJavid/course_predator.git
+cd course_predator
+
 python3 -m venv .venv
-. .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python -m pip install -e .
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install -e .
 ```
 
-On a headless Linux VPS, install the server dependencies only and do not start the Pygame client there. The server does not require a display.
+On a headless server (no display), install the dependencies only — the server itself doesn't need a screen. Just don't try to launch the client there.
 
-## Run a local match
+### Play a local match
 
-Start the server in one terminal:
+Terminal 1 — start the server:
 
 ```bash
 python run_server.py --host 127.0.0.1 --port 50007 --duration 60
 ```
 
-Start two clients, either from the same machine or from two machines that can reach the server:
+Terminal 2 and 3 — start two clients (same machine or two machines on the same network):
 
 ```bash
 python run_client.py
 ```
 
-In the lobby, enter the same host and port in both clients and choose **Join Game**. A match starts when the configured minimum number of players (two by default) has joined.
+In each client's lobby, enter the same host and port, then click **Join Game**. Once two players have joined, the match starts automatically.
 
-For a local host/client workflow, **Host Game** starts a local server process and connects the first client to `127.0.0.1`. This is convenient for development only.
+> **Tip:** **Host Game** in the lobby spins up a local server for you and connects the first client — handy for development, not for playing with friends over the internet.
 
-## Connect to a remote server
+## Playing with someone over the internet
 
-1. The server owner starts the server on a VPS or reachable Linux computer.
-2. Both players enter the server's public DNS name or public IP and the same TCP port in the lobby.
-3. If the server owner configured a room token, both players enter the same token in their client configuration/environment.
-4. Both players choose **Join Game**.
+1. The server owner runs the server on a VPS or any machine that's reachable from the internet:
 
-**Do not use `127.0.0.1` or `localhost` for remote play.** Those addresses always mean "this computer", so each player would connect to their own machine instead of the VPS. The default is intentionally local for safe development; replace it with the server's reachable hostname or address.
+   ```bash
+   python run_server.py --host 0.0.0.0 --port 50007
+   ```
 
-The default server port is `50007`. Choose a different port with `--port` and allow that exact TCP port through the VPS firewall.
+2. Both players open the lobby, enter the server's public IP or DNS name (not `127.0.0.1`!), and the same port.
 
-## Optional room token
+3. Both click **Join Game**. The match begins when enough players are in.
 
-For a public listener, set a shared token on the server and clients without committing it:
+**Don't use `127.0.0.1` or `localhost` for remote play.** Those always mean "this computer" — each player would end up on their own machine instead of your server. The default is local on purpose, for safe development.
 
+The default port is `50007`. Pick a different one with `--port`, and make sure your firewall allows traffic on that exact TCP port.
+
+## Locking the room with a token
+
+If you're running a public-facing server and want to keep random people out, set a shared room token:
+
+**Server:**
 ```bash
-export COURSE_PREDATOR_ROOM_TOKEN='replace-with-a-random-value'
+export COURSE_PREDATOR_ROOM_TOKEN='pick-a-long-random-string'
 python run_server.py --host 0.0.0.0 --port 50007
 ```
 
-The client uses the same environment variable when it connects. A token is simple access gating, not authentication or an account system. Anyone who learns it can join, so use a long random value and rotate it between private sessions.
+**Each client:**
+```bash
+export COURSE_PREDATOR_ROOM_TOKEN='pick-a-long-random-string'
+python run_client.py
+```
 
-## VPS deployment
+This is simple access gating, not real authentication. Anyone who knows the token can join, so use something long and random, and change it between sessions.
 
-[`deploy/course-predator.service`](deploy/course-predator.service) is a template, not a provider-specific deployment. The owner must:
+## Deploying on a VPS
 
-1. Create a dedicated non-root service user and application directory.
-2. Copy the repository into that directory and install Python dependencies in a virtual environment.
-3. Copy the unit to `/etc/systemd/system/`, replace the placeholder paths/user, and set the token through an environment file readable only by the service.
-4. Open only the chosen TCP port in the VPS firewall, for example:
+There's a systemd unit template at [`deploy/course-predator.service`](deploy/course-predator.service). It's a starting point, not a one-click deploy — you'll need to:
+
+1. Create a dedicated non-root user and an app directory (e.g. `/opt/course-predator`).
+2. Copy the repo there and install dependencies in a virtualenv.
+3. Drop the unit file into `/etc/systemd/system/`, fix the placeholder paths and username, and put your room token in an environment file only the service can read.
+4. Open only the game port in your firewall:
 
    ```bash
    sudo ufw allow 50007/tcp
    sudo ufw enable
    ```
 
-5. Reload and start the service:
+5. Start it up:
 
    ```bash
    sudo systemctl daemon-reload
@@ -107,30 +139,78 @@ The client uses the same environment variable when it connects. A token is simpl
    sudo journalctl -u course-predator -f
    ```
 
-The server deliberately exits cleanly after a finished room has saved its replay and all players have disconnected. The unit restarts it so the next room is available. This keeps room reset logic out of the game state, but it means the journal contains a normal stop/start boundary between rooms.
+**Why does the server restart between matches?** After a room finishes, saves its replay, and everyone disconnects, the server exits cleanly. systemd starts it fresh for the next room. You'll see a normal stop/start in the journal between matches — that's expected, not a crash.
 
-No VPS deployment or internet test is claimed by this repository. The owner must verify DNS, firewall rules, the token, systemd startup, and two real clients from separate networks.
+No VPS is included or tested by this repo. You'll need to verify DNS, firewall rules, the token, and two real clients yourself.
+
+## Spectating and replays
+
+- **Spectate** from the lobby to watch a live match as a third party. Spectators see every shape, including ones hidden from the players.
+- Every finished match is saved as a JSON file in `replays/`. Click **Watch Replay** in the lobby to play back the most recent one (Esc or Enter returns to the lobby).
+
+## Configuration
+
+Settings resolve in this order: **environment variable → `config.json` → defaults in `constants.py`**.
+
+| Env var | Default | What it does |
+| --- | --- | --- |
+| `COURSE_PREDATOR_HOST` | `127.0.0.1` | Server bind address |
+| `COURSE_PREDATOR_PORT` | `50007` | TCP port |
+| `COURSE_PREDATOR_DURATION` | `60` | Match length in seconds (15–300) |
+| `COURSE_PREDATOR_MIN_PLAYERS` | `2` | Players needed to start |
+| `COURSE_PREDATOR_MAX_PLAYERS` | `4` | Max players (1v1 is the supported mode) |
+| `COURSE_PREDATOR_REPLAY_DIR` | `replays` | Where replay files are written |
+| `COURSE_PREDATOR_ROOM_TOKEN` | *(empty)* | Optional shared access token |
+| `COURSE_PREDATOR_LOG_LEVEL` | `INFO` | Server log verbosity |
+| `COURSE_PREDATOR_CONFIG` | `config.json` | Path to a config file |
+
+You can also pass `--host`, `--port`, `--duration`, `--room-token`, and `--log-level` directly on the command line.
 
 ## Troubleshooting
 
-- **Connection refused:** confirm the server process is running, the host/port match, and the firewall allows TCP traffic on that port.
-- **Both clients connect to different games:** check that neither client uses `127.0.0.1`/`localhost` for a remote server.
-- **Waiting for players:** both clients must use **Join Game**, not **Host Game**, and must provide the same server address and token.
-- **Token rejected:** compare `COURSE_PREDATOR_ROOM_TOKEN` exactly on the server and both clients, then restart the client.
-- **A player leaves:** the match ends immediately and awards the remaining connected player; the server saves the replay after the room is empty.
-- **No replay appears:** check the server's configured replay directory and journal for permission errors.
-- **Client display problems on Linux:** run the client in a desktop session with the required SDL/Pygame display support; the server itself is headless.
+| Problem | Fix |
+| --- | --- |
+| **Connection refused** | Is the server running? Does the host/port match? Is the firewall open on that TCP port? |
+| **Players end up in different games** | Someone is probably using `127.0.0.1`/`localhost` for a remote server. Use the real address. |
+| **Stuck on "Waiting for players"** | Both clients must click **Join Game** (not Host), with the same address, port, and token. |
+| **Token rejected** | Make sure `COURSE_PREDATOR_ROOM_TOKEN` is identical on the server and both clients, then restart the client. |
+| **Opponent left mid-match** | The match ends immediately and the remaining player wins. The replay is saved once the room empties. |
+| **No replay file** | Check the server's replay directory and journal for permission errors. |
+| **Client won't open on Linux** | You need a real desktop session with SDL/Pygame display support. The server itself is headless. |
 
 ## Development
 
 ```bash
-python -m pytest
-python -m ruff check .
-python -m black --check .
+make test        # or: python -m pytest
+make lint        # or: python -m ruff check .
+make format      # or: python -m black .
 ```
 
-The GitHub Actions workflow runs the same test and quality checks on pushes and pull requests.
+The GitHub Actions workflow runs tests, Ruff, and Black on every push and pull request.
+
+Project layout at a glance:
+
+```
+course_predator/
+├── game.py          # authoritative game rules
+├── server.py        # threaded TCP server
+├── protocol.py      # newline-delimited JSON messages
+├── replay.py        # replay recording/loading
+├── models.py        # shapes, players, shared state
+├── config.py        # env/file/default configuration
+└── client/
+    ├── lobby.py     # pre-match lobby UI
+    ├── game.py      # match loop
+    ├── renderer.py  # Pygame drawing
+    ├── network.py   # client-side networking
+    ├── mouse.py     # virtual cursor + calibration
+    └── replay.py    # replay playback
+```
+
+## What's not included
+
+This repo ships the game and its server. There's no browser build, no accounts, no matchmaking, and no hosted public server. See [`ROADMAP.md`](ROADMAP.md) for what's planned next.
 
 ## License
 
-Course Predator is released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE).
